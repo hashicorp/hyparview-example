@@ -1,0 +1,17 @@
+syntax = "proto3"
+
+import "google/protobuf/empty.proto";
+
+package grpc;
+
+service Gossip {
+  rpc RecvGossip (GossipRequest) returns (GossipResponse) {}
+}
+
+message GossipRequest {
+  int32 payload = 1;
+}
+
+message GossipResponse {
+  bool hot = 1;
+}

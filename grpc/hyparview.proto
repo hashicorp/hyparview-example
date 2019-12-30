@@ -2,7 +2,7 @@ syntax = "proto3"
 
 import "google/protobuf/empty.proto";
 
-package main;
+package grpc;
 
 service Hyparview {
   rpc RecvJoin (google.protobuf.Empty) returns (google.protobuf.Empty) {}
