@@ -1,8 +1,7 @@
-syntax = "proto3"
+syntax = "proto3";
 
-import "google/protobuf/empty.proto";
-
-package grpc;
+package hashicorp.hyparview.example.gossip;
+option go_package = "proto";
 
 service Gossip {
   rpc RecvGossip (GossipRequest) returns (GossipResponse) {}
