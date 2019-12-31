@@ -3,36 +3,43 @@ package hashicorp.hyparview.example.hyparview;
 option go_package = "proto";
 
 service Hyparview {
-  rpc RecvJoin (Empty) returns (Empty) {}
+  rpc RecvJoin (FromRequest) returns (Empty) {}
   rpc RecvForwardJoin (ForwardJoinRequest) returns (Empty) {}
-  rpc RecvDisconnect (Empty) returns (Empty) {}
+  rpc RecvDisconnect (FromRequest) returns (Empty) {}
   rpc RecvNeighbor (NeighborRequest) returns (NeighborResponse) {}
   rpc RecvShuffle (ShuffleRequest) returns (ShuffleReply) {}
-  rpc RecvShuffleReply (ShuffleReply) returns (Empty) {}
 }
 
-message Empty {
+message Empty {}
+
+message FromRequest {
+  string from = 1;
 }
 
 message ForwardJoinRequest {
   int32 ttl = 1;
   string join = 2;
+  string from = 3;
 }
 
 message NeighborRequest {
   bool priority = 1;
+  string from = 2;
 }
 
 message NeighborResponse {
   bool accept = 1;
+  string from = 2;
 }
 
 message ShuffleRequest {
   int32 ttl = 1;
   repeated string active = 2;
   repeated string passive = 3;
+  string from = 4;
 }
 
 message ShuffleReply {
   repeated string passive = 1;
+  string from = 2;
 }
