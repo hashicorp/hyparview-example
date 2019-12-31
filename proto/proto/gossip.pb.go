@@ -34,7 +34,7 @@ func (m *GossipRequest) Reset()         { *m = GossipRequest{} }
 func (m *GossipRequest) String() string { return proto.CompactTextString(m) }
 func (*GossipRequest) ProtoMessage()    {}
 func (*GossipRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gossip_748ed202448ce858, []int{0}
+	return fileDescriptor_gossip_26a747d50ba9ddcb, []int{0}
 }
 func (m *GossipRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GossipRequest.Unmarshal(m, b)
@@ -72,7 +72,7 @@ func (m *GossipResponse) Reset()         { *m = GossipResponse{} }
 func (m *GossipResponse) String() string { return proto.CompactTextString(m) }
 func (*GossipResponse) ProtoMessage()    {}
 func (*GossipResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gossip_748ed202448ce858, []int{1}
+	return fileDescriptor_gossip_26a747d50ba9ddcb, []int{1}
 }
 func (m *GossipResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GossipResponse.Unmarshal(m, b)
@@ -116,7 +116,7 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type GossipClient interface {
-	RecvGossip(ctx context.Context, in *GossipRequest, opts ...grpc.CallOption) (*GossipResponse, error)
+	Gossip(ctx context.Context, in *GossipRequest, opts ...grpc.CallOption) (*GossipResponse, error)
 }
 
 type gossipClient struct {
@@ -127,9 +127,9 @@ func NewGossipClient(cc *grpc.ClientConn) GossipClient {
 	return &gossipClient{cc}
 }
 
-func (c *gossipClient) RecvGossip(ctx context.Context, in *GossipRequest, opts ...grpc.CallOption) (*GossipResponse, error) {
+func (c *gossipClient) Gossip(ctx context.Context, in *GossipRequest, opts ...grpc.CallOption) (*GossipResponse, error) {
 	out := new(GossipResponse)
-	err := c.cc.Invoke(ctx, "/hashicorp.hyparview.example.gossip.Gossip/RecvGossip", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/hashicorp.hyparview.example.gossip.Gossip/Gossip", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -138,27 +138,27 @@ func (c *gossipClient) RecvGossip(ctx context.Context, in *GossipRequest, opts .
 
 // GossipServer is the server API for Gossip service.
 type GossipServer interface {
-	RecvGossip(context.Context, *GossipRequest) (*GossipResponse, error)
+	Gossip(context.Context, *GossipRequest) (*GossipResponse, error)
 }
 
 func RegisterGossipServer(s *grpc.Server, srv GossipServer) {
 	s.RegisterService(&_Gossip_serviceDesc, srv)
 }
 
-func _Gossip_RecvGossip_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Gossip_Gossip_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GossipRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GossipServer).RecvGossip(ctx, in)
+		return srv.(GossipServer).Gossip(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/hashicorp.hyparview.example.gossip.Gossip/RecvGossip",
+		FullMethod: "/hashicorp.hyparview.example.gossip.Gossip/Gossip",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GossipServer).RecvGossip(ctx, req.(*GossipRequest))
+		return srv.(GossipServer).Gossip(ctx, req.(*GossipRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -168,18 +168,18 @@ var _Gossip_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*GossipServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "RecvGossip",
-			Handler:    _Gossip_RecvGossip_Handler,
+			MethodName: "Gossip",
+			Handler:    _Gossip_Gossip_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "proto/gossip.proto",
 }
 
-func init() { proto.RegisterFile("proto/gossip.proto", fileDescriptor_gossip_748ed202448ce858) }
+func init() { proto.RegisterFile("proto/gossip.proto", fileDescriptor_gossip_26a747d50ba9ddcb) }
 
-var fileDescriptor_gossip_748ed202448ce858 = []byte{
-	// 174 bytes of a gzipped FileDescriptorProto
+var fileDescriptor_gossip_26a747d50ba9ddcb = []byte{
+	// 168 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x12, 0x2a, 0x28, 0xca, 0x2f,
 	0xc9, 0xd7, 0x4f, 0xcf, 0x2f, 0x2e, 0xce, 0x2c, 0xd0, 0x03, 0x73, 0x84, 0x94, 0x32, 0x12, 0x8b,
 	0x33, 0x32, 0x93, 0xf3, 0x8b, 0x0a, 0xf4, 0x32, 0x2a, 0x0b, 0x12, 0x8b, 0xca, 0x32, 0x53, 0xcb,
@@ -187,8 +187,8 @@ var fileDescriptor_gossip_748ed202448ce858 = []byte{
 	0xc1, 0xac, 0xa0, 0xd4, 0xc2, 0xd2, 0xd4, 0xe2, 0x12, 0x21, 0x09, 0x2e, 0xf6, 0x82, 0xc4, 0xca,
 	0x9c, 0xfc, 0xc4, 0x14, 0x09, 0x46, 0x05, 0x46, 0x0d, 0xd6, 0x20, 0x18, 0x57, 0x49, 0x89, 0x8b,
 	0x0f, 0xa6, 0xb4, 0xb8, 0x20, 0x3f, 0xaf, 0x38, 0x55, 0x48, 0x80, 0x8b, 0x39, 0x23, 0xbf, 0x04,
-	0xac, 0x8e, 0x23, 0x08, 0xc4, 0x34, 0xaa, 0xe7, 0x62, 0x83, 0xa8, 0x11, 0x2a, 0xe5, 0xe2, 0x0a,
-	0x4a, 0x4d, 0x2e, 0x83, 0xf2, 0x0c, 0xf5, 0x08, 0xbb, 0x45, 0x0f, 0xc5, 0x21, 0x52, 0x46, 0xa4,
-	0x68, 0x81, 0x38, 0x48, 0x89, 0xc1, 0x89, 0x3d, 0x8a, 0x15, 0xec, 0xf9, 0x24, 0x36, 0x30, 0x65,
-	0x0c, 0x08, 0x00, 0x00, 0xff, 0xff, 0x82, 0x86, 0xea, 0x69, 0x19, 0x01, 0x00, 0x00,
+	0xac, 0x8e, 0x23, 0x08, 0xc4, 0x34, 0xaa, 0xe6, 0x62, 0x83, 0xa8, 0x11, 0x2a, 0x84, 0xb3, 0x0c,
+	0xf5, 0x08, 0xbb, 0x43, 0x0f, 0xc5, 0x11, 0x52, 0x46, 0xa4, 0x68, 0x81, 0x38, 0x46, 0x89, 0xc1,
+	0x89, 0x3d, 0x8a, 0x15, 0xec, 0xf1, 0x24, 0x36, 0x30, 0x65, 0x0c, 0x08, 0x00, 0x00, 0xff, 0xff,
+	0x1c, 0xe5, 0xac, 0x5d, 0x15, 0x01, 0x00, 0x00,
 }
