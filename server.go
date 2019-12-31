@@ -10,36 +10,36 @@ import (
 )
 
 type server struct {
-	c *Client
+	c *client
 }
 
-func newServer(c *Client) *server {
+func newServer(c *client) *server {
 	return &server{c: c}
 }
 
 func (s *server) Gossip(ctx context.Context, req *proto.GossipRequest) (*proto.GossipResponse, error) {
-	hot := s.c.gossipRecv(req.payload)
-	return hot, nil
+	hot := s.c.app.gossipRecv(int(req.Payload))
+	return &proto.GossipResponse{Hot: hot}, nil
 }
 
-func (s *server) Join(ctx context.Context, req *proto.JoinRequest) (*proto.Empty, error) {
-	to, from := s.c.hv.Self, &h.Node{Addr: req.from}
+func (s *server) Join(ctx context.Context, req *proto.FromRequest) (*proto.Empty, error) {
+	to, from := s.c.hv.Self, &h.Node{Addr: req.From}
 	ms := s.c.hv.RecvJoin(h.SendJoin(to, from))
-	s.c.Outbox(ms...)
+	s.c.outbox(ms...)
 	return &proto.Empty{}, nil
 }
 
 func (s *server) ForwardJoin(ctx context.Context, req *proto.ForwardJoinRequest) (*proto.Empty, error) {
-	to, from := s.c.hv.Self, &h.Node{Addr: req.from}
-	join := &h.Node{Addr: req.join}
-	ttl := req.ttl
+	to, from := s.c.hv.Self, &h.Node{Addr: req.From}
+	join := &h.Node{Addr: req.Join}
+	ttl := int(req.Ttl)
 	ms := s.c.hv.RecvForwardJoin(h.SendForwardJoin(to, from, join, ttl))
-	s.c.Outbox(ms...)
+	s.c.outbox(ms...)
 	return &proto.Empty{}, nil
 }
 
 func (s *server) Disconnect(ctx context.Context, req *proto.FromRequest) (*proto.Empty, error) {
-	to, from := s.c.hv.Self, &h.Node{Addr: req.from}
+	to, from := s.c.hv.Self, &h.Node{Addr: req.From}
 	s.c.hv.RecvDisconnect(h.SendDisconnect(to, from))
 	return &proto.Empty{}, nil
 }
@@ -54,19 +54,19 @@ func (s *server) Neighbor(ctx context.Context, req *proto.NeighborRequest) (*pro
 
 func (s *server) Shuffle(ctx context.Context, req *proto.ShuffleRequest) (*proto.ShuffleReply, error) {
 	to, from := s.c.hv.Self, &h.Node{Addr: req.From}
-	active := req.Active
-	passive := req.Passive
-	ttl := req.Ttl
+	active := sliceAddrNode(req.Active)
+	passive := sliceAddrNode(req.Passive)
+	ttl := int(req.Ttl)
 	ms := s.c.hv.RecvShuffle(h.SendShuffle(to, from, active, passive, ttl))
 
 	var res *proto.ShuffleReply
 
 	for _, m := range ms {
 		switch v := m.(type) {
-		case h.SendShuffle:
-			s.c.Outbox(m)
-		case h.ShuffleReply:
-			res = &proto.ShuffleReply{Passive: v.Passive}
+		case *h.ShuffleRequest:
+			s.c.outbox(v)
+		case *h.ShuffleReply:
+			res = &proto.ShuffleReply{Passive: sliceNodeAddr(v.Passive)}
 		}
 	}
 
