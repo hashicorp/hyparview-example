@@ -17,19 +17,19 @@ func newServer(c *Client) *server {
 	return &server{c: c}
 }
 
-func (s *server) RecvGossip(ctx context.Context, req *proto.GossipRequest) (*proto.GossipResponse, error) {
+func (s *server) Gossip(ctx context.Context, req *proto.GossipRequest) (*proto.GossipResponse, error) {
 	hot := s.c.gossipRecv(req.payload)
 	return hot, nil
 }
 
-func (s *server) RecvJoin(ctx context.Context, req *proto.JoinRequest) (*proto.Empty, error) {
+func (s *server) Join(ctx context.Context, req *proto.JoinRequest) (*proto.Empty, error) {
 	to, from := s.c.hv.Self, &h.Node{Addr: req.from}
 	ms := s.c.hv.RecvJoin(h.SendJoin(to, from))
 	s.c.Outbox(ms...)
 	return &proto.Empty{}, nil
 }
 
-func (s *server) RecvForwardJoin(ctx context.Context, req *proto.ForwardJoinRequest) (*proto.Empty, error) {
+func (s *server) ForwardJoin(ctx context.Context, req *proto.ForwardJoinRequest) (*proto.Empty, error) {
 	to, from := s.c.hv.Self, &h.Node{Addr: req.from}
 	join := &h.Node{Addr: req.join}
 	ttl := req.ttl
@@ -38,13 +38,13 @@ func (s *server) RecvForwardJoin(ctx context.Context, req *proto.ForwardJoinRequ
 	return &proto.Empty{}, nil
 }
 
-func (s *server) RecvDisconnect(ctx context.Context, req *proto.FromRequest) (*proto.Empty, error) {
+func (s *server) Disconnect(ctx context.Context, req *proto.FromRequest) (*proto.Empty, error) {
 	to, from := s.c.hv.Self, &h.Node{Addr: req.from}
 	s.c.hv.RecvDisconnect(h.SendDisconnect(to, from))
 	return &proto.Empty{}, nil
 }
 
-func (s *server) RecvNeighbor(ctx context.Context, req *proto.NeighborRequest) (*proto.NeighborResponse, error) {
+func (s *server) Neighbor(ctx context.Context, req *proto.NeighborRequest) (*proto.NeighborResponse, error) {
 	to, from := s.c.hv.Self, &h.Node{Addr: req.From}
 	priority := req.Priority
 	ms := s.c.hv.RecvNeighbor(h.SendNeighbor(to, from, priority))
@@ -52,7 +52,7 @@ func (s *server) RecvNeighbor(ctx context.Context, req *proto.NeighborRequest) (
 	return &proto.NeighborResponse{Accept: accept}, nil
 }
 
-func (s *server) RecvShuffle(ctx context.Context, req *proto.ShuffleRequest) (*proto.ShuffleReply, error) {
+func (s *server) Shuffle(ctx context.Context, req *proto.ShuffleRequest) (*proto.ShuffleReply, error) {
 	to, from := s.c.hv.Self, &h.Node{Addr: req.From}
 	active := req.Active
 	passive := req.Passive
