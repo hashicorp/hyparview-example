@@ -1,9 +1,9 @@
 package main
 
-func (c *Client) joinCluster() {
+func (c *client) joinCluster() {
 
 }
 
-func (c *Client) lpShuffle() {
+func (c *client) lpShuffle() {
 
 }
