@@ -1,131 +1,185 @@
 package main
 
 import (
+	"context"
 	"crypto/rand"
-	"crypto/tls"
-	"crypto/x509"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"time"
 
 	h "github.com/hashicorp/hyparview"
+	"github.com/hashicorp/hyparview-example/proto/proto"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
-type ClientConfig struct {
+type clientConfig struct {
 	ID          string
 	Addr        string
 	Boot        string
 	RootPEMFile string
+	keyFile     string
 }
 
-type Gossip struct {
-	Value int // final value we got
-	Hot   int // gossip hotness
-	Seen  int // if app == appSeen, we got every message
-	Waste int // count of app messages that didn't change the value
+type conn struct {
+	c *grpc.ClientConn
+	h proto.HyparviewClient
+	g proto.GossipClient
 }
 
-type Client struct {
-	config *ClientConfig
-	tls    *tls.Config
+type client struct {
+	config *clientConfig
+	grpc   []grpc.DialOption
 	hv     *h.Hyparview
-	app    *Gossip
-	conn   map[string]*tls.Conn
+	app    *gossip
+	conn   map[string]*conn
 	in     []h.Message
 	out    []h.Message
 }
 
-func makeID() string {
+func newID() string {
 	bs := make([]byte, 8)
 	rand.Read(bs)
-	return fmt.Sprintf("%160x", bs)
+	return fmt.Sprintf("%x", bs)
 }
 
-func MakeClient(c *ClientConfig) (*Client, error) {
-	addr := fmt.Sprintf("%s:%d", c.Addr, c.Port)
-	cert, err := ioutil.ReadFile(c.RootPEMFile)
+func newClient(c *clientConfig) (*client, error) {
+	var opts []grpc.DialOption
+	creds, err := credentials.NewClientTLSFromFile(c.RootPEMFile, "")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("credential failure: %v", err)
 	}
+	opts = append(opts, grpc.WithTransportCredentials(creds))
 
-	roots := x509.NewCertPool()
-	ok := roots.AppendCertsFromPEM(cert)
-	if !ok {
-		return nil, fmt.Errorf("failed to parse root cert %s", c.RootPEMFile)
-	}
-
-	return &Client{
+	return &client{
 		config: c,
-		tls:    &tls.Config{RootCAs: roots},
-		hy:     h.CreateView(&h.Node{ID: id, Addr: addr}),
-		app:    &Gossip{},
-	}
+		grpc:   opts,
+		hv:     h.CreateView(&h.Node{ID: c.Addr, Addr: c.Addr}, 10000),
+		app:    newGossip(4),
+	}, nil
 }
 
-func (c *Client) Dial(node *h.Node) (tls.Conn, error) {
+func (c *client) dial(node *h.Node) (*conn, error) {
 	cn, ok := c.conn[node.Addr]
 	if ok {
 		return cn, nil
 	}
 
-	cn, err := tls.Dial("tcp", node.Addr, c.tls)
+	g, err := grpc.Dial(node.Addr, c.grpc...)
 	if err == nil {
 		return nil, err
+	}
+
+	cn = &conn{
+		c: g,
+		h: proto.NewHyparviewClient(g),
+		g: proto.NewGossipClient(g),
 	}
 
 	c.conn[node.Addr] = cn
 	return cn, nil
 }
 
-func (c *Client) Outbox(ms ...h.Message) {
+func (c *client) drop(node *h.Node) {
+	cn, _ := c.conn[node.Addr]
+	if cn != nil {
+		cn.c.Close()
+	}
+	delete(c.conn, node.Addr)
+}
+
+func (c *client) send(m h.Message) (err error) {
+	cn, err := c.dial(m.To())
+	if err != nil {
+		return err
+	}
+	grpc := cn.h
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	switch v := m.(type) {
+	case *h.JoinRequest:
+		r := &proto.FromRequest{From: c.hv.Self.Addr}
+		_, err = grpc.Join(ctx, r)
+
+	case *h.ForwardJoinRequest:
+		r := &proto.ForwardJoinRequest{
+			Ttl:  int32(v.TTL),
+			Join: v.Join.Addr,
+			From: v.From.Addr,
+		}
+		_, err = grpc.ForwardJoin(ctx, r)
+
+	case *h.DisconnectRequest:
+		r := &proto.FromRequest{From: c.hv.Self.Addr}
+		_, err = grpc.Disconnect(ctx, r)
+
+	case *h.NeighborRequest:
+		// Only in `out` if high priority, safe to ignore the response
+		r := &proto.NeighborRequest{Priority: v.Priority, From: v.From.Addr}
+		_, err = grpc.Neighbor(ctx, r)
+	}
+	return err
+}
+
+func (c *client) sendNeighbor(m *h.NeighborRequest) (*h.NeighborRefuse, error) {
+	cn, err := c.dial(m.To())
+	if err != nil {
+		return nil, err
+	}
+	grpc := cn.h
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	req := &proto.NeighborRequest{Priority: m.Priority, From: m.From.Addr}
+	r, err := grpc.Neighbor(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return h.SendNeighborRefuse(c.hv.Self, &h.Node{Addr: r.From}), nil
+}
+
+func (c *client) sendShuffle(m *h.ShuffleRequest) (res *h.ShuffleReply, err error) {
+	cn, err := c.dial(m.To())
+	if err != nil {
+		return nil, err
+	}
+	grpc := cn.h
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	req := &proto.ShuffleRequest{
+		Ttl:     int32(m.TTL),
+		Active:  sliceNodeAddr(m.Active),
+		Passive: sliceNodeAddr(m.Passive),
+		From:    m.From.Addr,
+	}
+	r, err := grpc.Shuffle(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return h.SendShuffleReply(c.hv.Self, &h.Node{Addr: r.From}, sliceAddrNode(r.Passive)), nil
+}
+
+func (c *client) outbox(ms ...h.Message) {
 	c.out = append(c.out, ms...)
 }
 
-func (c *Client) Send(m *h.Message) (resp *h.NeighborRefuse, err error) {
-	bs, err := c.sendSync(m.To(), json.Marshal(m))
-	if len(bs) > 0 {
-		err = json.Unmarshal(bs, resp)
-	}
-	return resp, err
-}
-
-func (c *Client) sendSync(peer *h.Node, bs []byte) ([]byte, error) {
-	conn, err := c.Dial(peer.Addr)
-	if err != nil {
-		return nil, err
-	}
-
-	len, err := conn.Write(bs)
-
-	if err != nil {
-		c.failActive(peer)
-		return nil, err
-	}
-
-	if len(bs) != len {
-		c.failActive(peer)
-		return nil, fmt.Errorf("only wrote %d of %d bytes", len, len(bs))
-	}
-
-	var resp []byte
-	err = conn.Read(resp)
-	return resp, err
-}
-
-func (c *Client) Drain(count int) {
+func (c *client) drain(count int) {
 	for i := count; i > 0; i-- {
-		ms, err := c.Send(c.out[0])
+		err := c.send(c.out[0])
 		if err != nil {
 			continue
-		}
-		if len(ms) > 0 {
-			c.Outbox(ms...)
 		}
 		c.out = c.out[1:]
 	}
 }
 
-func (c *Client) failActive(peer *h.Node) error {
+func (c *client) failActive(peer *h.Node) error {
 	v := c.hv
 	idx := v.Active.ContainsIndex(peer)
 	if idx < 0 {
@@ -136,16 +190,16 @@ func (c *Client) failActive(peer *h.Node) error {
 		if v.Active.IsEmpty() {
 			// High priority can't be rejected, so send async
 			m := h.SendNeighbor(n, v.Self, h.HighPriority)
-			c.Outbox(m)
+			c.outbox(m)
 			break
 		} else {
 			m := h.SendNeighbor(n, v.Self, h.LowPriority)
-			resp, err := c.Send(m)
+			res, err := c.sendNeighbor(m)
 			// Either moved to the active view, or failed
 			v.DelPassive(n)
 			// empty low priority response is success
-			if resp == nil && err == nil {
-				c.Outbox(v.AddActive(n)...)
+			if res == nil && err == nil {
+				c.outbox(v.AddActive(n)...)
 				break
 			}
 		}
