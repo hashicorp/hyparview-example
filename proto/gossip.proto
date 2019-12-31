@@ -4,7 +4,7 @@ package hashicorp.hyparview.example.gossip;
 option go_package = "proto";
 
 service Gossip {
-  rpc RecvGossip (GossipRequest) returns (GossipResponse) {}
+  rpc Gossip (GossipRequest) returns (GossipResponse) {}
 }
 
 message GossipRequest {
