@@ -1,8 +1,30 @@
 package main
 
-func (c *Client) gossipSend(payload int) {
+import (
+	"context"
+	"time"
+
+	h "github.com/hashicorp/hyparview"
+	"github.com/hashicorp/hyparview-example/proto/proto"
+)
+
+type gossip struct {
+	MaxHeat int // config value
+	Value   int // final value we got
+	Hot     int // gossip hotness
+	Seen    int // if app == appSeen, we got every message
+	Waste   int // count of app messages that didn't change the value
+}
+
+func newGossip(maxHeat int) *gossip {
+	return &gossip{
+		MaxHeat: maxHeat,
+	}
+}
+
+func (c *client) gossipSend(payload int) {
 	for c.app.Hot > 0 {
-		if h.Rint(c.world.config.gossipHeat) > c.app.Hot {
+		if h.Rint(c.app.MaxHeat) > c.app.Hot {
 			continue
 		}
 
@@ -23,22 +45,28 @@ func (c *Client) gossipSend(payload int) {
 	}
 }
 
-func (c *Client) gossipSendSync(peer *h.Node, payload int) (bool, error) {
-	bs, err := c.sendSync(peer, []byte{payload})
-	var out bool
-	if len(bs) > 0 {
-		out = bs[0] == 1
+func (c *client) gossipSendSync(peer *h.Node, payload int) (bool, error) {
+	cn, err := c.dial(peer)
+	if err != nil {
+		return false, err
 	}
-	return out, err
+	grpc := cn.g
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	req := &proto.GossipRequest{Payload: int32(payload)}
+	r, err := grpc.Gossip(ctx, req)
+	return r.GetHot(), err
 }
 
-func (c *Client) gossipRecv(payload int) bool {
-	if c.app.Value >= payload {
-		c.app.Waste += 1
+func (app *gossip) gossipRecv(payload int) bool {
+	if app.Value >= payload {
+		app.Waste += 1
 		return false
 	}
-	c.app.Value = payload
-	c.app.Seen += 1
-	c.app.Hot = c.world.config.gossipHeat
+	app.Value = payload
+	app.Seen += 1
+	app.Hot = app.MaxHeat
 	return true
 }
