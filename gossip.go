@@ -5,7 +5,7 @@ import (
 	"time"
 
 	h "github.com/hashicorp/hyparview"
-	"github.com/hashicorp/hyparview-example/proto/proto"
+	"github.com/hashicorp/hyparview-example/proto"
 )
 
 type gossip struct {

@@ -1,3 +1,5 @@
+//go:generate protoc -I . --go_out=plugins=grpc:. ./proto/hyparview.proto ./proto/gossip.proto
+
 package main
 
 import (
@@ -7,7 +9,7 @@ import (
 	"time"
 
 	h "github.com/hashicorp/hyparview"
-	"github.com/hashicorp/hyparview-example/proto/proto"
+	"github.com/hashicorp/hyparview-example/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
