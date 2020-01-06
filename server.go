@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 
 	h "github.com/hashicorp/hyparview"
 	"github.com/hashicorp/hyparview-example/proto"
@@ -17,10 +18,15 @@ func newServer(c *client) *server {
 
 func (s *server) Gossip(ctx context.Context, req *proto.GossipRequest) (*proto.GossipResponse, error) {
 	hot := s.c.app.gossipRecv(int(req.Payload))
+	if hot {
+		log.Printf("info gossip recv: %d\n", req.Payload)
+	}
+
 	return &proto.GossipResponse{Hot: hot}, nil
 }
 
 func (s *server) Join(ctx context.Context, req *proto.FromRequest) (*proto.Empty, error) {
+	log.Printf("info join recv: %s\n", req.From)
 	to, from := s.c.hv.Self, &h.Node{Addr: req.From}
 	ms := s.c.hv.RecvJoin(h.SendJoin(to, from))
 	s.c.outbox(ms...)
@@ -51,6 +57,7 @@ func (s *server) Neighbor(ctx context.Context, req *proto.NeighborRequest) (*pro
 }
 
 func (s *server) Shuffle(ctx context.Context, req *proto.ShuffleRequest) (*proto.ShuffleReply, error) {
+	log.Printf("info shuffle recv: %s\n", req.From)
 	to, from := s.c.hv.Self, &h.Node{Addr: req.From}
 	active := sliceAddrNode(req.Active)
 	passive := sliceAddrNode(req.Passive)

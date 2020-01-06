@@ -8,7 +8,6 @@ import (
 
 	h "github.com/hashicorp/hyparview"
 	"github.com/hashicorp/hyparview-example/proto"
-	"github.com/kr/pretty"
 	"google.golang.org/grpc"
 )
 
@@ -35,7 +34,6 @@ type client struct {
 	hv     *h.Hyparview
 	app    *gossip
 	conn   map[string]*conn
-	in     []h.Message
 	out    []h.Message
 }
 
@@ -50,6 +48,8 @@ func newClient(c *clientConfig) *client {
 		config: c,
 		hv:     h.CreateView(&h.Node{ID: c.addr, Addr: c.addr}, 10000),
 		app:    newGossip(4),
+		conn:   map[string]*conn{},
+		out:    []h.Message{},
 	}
 }
 
@@ -60,13 +60,13 @@ func (c *client) dial(node *h.Node) (*conn, error) {
 	}
 
 	// Client name must match the dns name of the server
-	creds, err := clientCreds(c, "localhost")
+	creds, err := clientCreds(c.config, "localhost")
 	if err != nil {
 		return nil, fmt.Errorf("error client credential: %v", err)
 	}
 
 	g, err := grpc.Dial(node.Addr, grpc.WithTransportCredentials(creds))
-	if err == nil {
+	if err != nil {
 		return nil, err
 	}
 
@@ -147,9 +147,6 @@ func (c *client) sendShuffle(m *h.ShuffleRequest) (res *h.ShuffleReply, err erro
 	if to == nil {
 		return nil, nil
 	}
-
-	pretty.Log("debug sendShuffle", m)
-
 	cn, err := c.dial(m.To())
 	if err != nil {
 		return nil, err

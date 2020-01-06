@@ -10,7 +10,6 @@ import (
 
 	h "github.com/hashicorp/hyparview"
 	"github.com/hashicorp/hyparview-example/proto"
-	"github.com/kr/pretty"
 	"google.golang.org/grpc"
 )
 
@@ -18,7 +17,7 @@ import (
 func main() {
 	addr := os.Getenv("ADDR")
 	boot := os.Getenv("BOOTSTRAP")
-	c, _ := newClient(&clientConfig{
+	c := newClient(&clientConfig{
 		id:         newID(),
 		addr:       addr,
 		bootstrap:  boot,
@@ -31,6 +30,7 @@ func main() {
 
 	go runServer(c)
 	if boot != addr {
+		log.Printf("info bootstrap %s\n", boot)
 		c.send(h.SendJoin(node(boot), c.hv.Self))
 	}
 	c.lpShuffle()
@@ -41,7 +41,7 @@ func (c *client) lpShuffle() {
 		time.Sleep(10 * time.Second)
 		r, err := c.sendShuffle(c.hv.SendShuffle(c.hv.Peer()))
 		if err != nil {
-			pretty.Log("error lpShuffle", err)
+			log.Printf("error shuffle send: %v\n", err)
 			continue
 		}
 		if r == nil {
@@ -55,12 +55,12 @@ func (c *client) lpShuffle() {
 func runServer(c *client) {
 	lis, err := net.Listen("tcp", c.config.addr)
 	if err != nil {
-		log.Fatalf("error listen: %v", err)
+		log.Fatalf("error listen: %v\n", err)
 	}
 
 	creds, err := serverCreds(c.config)
 	if err != nil {
-		log.Fatalf("error tls: %v", err)
+		log.Fatalf("error tls: %v\n", err)
 	}
 	opts := []grpc.ServerOption{grpc.Creds(creds)}
 

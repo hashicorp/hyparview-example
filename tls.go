@@ -31,14 +31,12 @@ func serverCreds(c *clientConfig) (credentials.TransportCredentials, error) {
 }
 
 func caPool(caCert string) (*x509.CertPool, error) {
-	// Create a certificate pool from the certificate authority
 	certPool := x509.NewCertPool()
-	ca, err := ioutil.ReadFile(c.caCert)
+	ca, err := ioutil.ReadFile(caCert)
 	if err != nil {
 		return nil, fmt.Errorf("could not read ca certificate: %s", err)
 	}
 
-	// Append the client certificates from the CA
 	if ok := certPool.AppendCertsFromPEM(ca); !ok {
 		return nil, errors.New("failed to append client certs")
 	}
