@@ -10,17 +10,17 @@ import (
 	"github.com/hashicorp/hyparview-example/proto"
 	"github.com/kr/pretty"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 type clientConfig struct {
-	id        string
-	addr      string
-	bootstrap string
-	serverPEM string
-	serverKey string
-	clientPEM string
-	clientKey string
+	id         string
+	addr       string
+	bootstrap  string
+	caCert     string
+	serverCert string
+	serverKey  string
+	clientCert string
+	clientKey  string
 }
 
 type conn struct {
@@ -45,20 +45,12 @@ func newID() string {
 	return fmt.Sprintf("%x", bs)
 }
 
-func newClient(c *clientConfig) (*client, error) {
-	var opts []grpc.DialOption
-	creds, err := credentials.NewClientTLSFromFile(c.clientPEM, c.clientKey)
-	if err != nil {
-		return nil, fmt.Errorf("credential failure: %v", err)
-	}
-	opts = append(opts, grpc.WithTransportCredentials(creds))
-
+func newClient(c *clientConfig) *client {
 	return &client{
 		config: c,
-		grpc:   opts,
 		hv:     h.CreateView(&h.Node{ID: c.addr, Addr: c.addr}, 10000),
 		app:    newGossip(4),
-	}, nil
+	}
 }
 
 func (c *client) dial(node *h.Node) (*conn, error) {
@@ -67,7 +59,13 @@ func (c *client) dial(node *h.Node) (*conn, error) {
 		return cn, nil
 	}
 
-	g, err := grpc.Dial(node.Addr, c.grpc...)
+	// Client name must match the dns name of the server
+	creds, err := clientCreds(c, "localhost")
+	if err != nil {
+		return nil, fmt.Errorf("error client credential: %v", err)
+	}
+
+	g, err := grpc.Dial(node.Addr, grpc.WithTransportCredentials(creds))
 	if err == nil {
 		return nil, err
 	}
