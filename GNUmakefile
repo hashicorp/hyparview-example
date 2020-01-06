@@ -11,10 +11,13 @@ root: cert/$(DOMAIN)-agent-ca.pem
 # Implementation
 
 # build
-sources = $(wildcard *.go) $(wildcard proto/*.go)
-bin/hyparview-example: $(sources)
+sources = $(wildcard *.go)
+bin/hyparview-example: $(sources) proto/hyparview.pb.go proto/gossip.pb.go
 	go build
 	mv hyparview-example $@
+
+proto/%.pb.go: proto/%.proto
+	protoc -I . --go_out=plugins=grpc:. $<
 
 # certs & keys
 cert/$(DOMAIN)-agent-ca.pem:
