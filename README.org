@@ -1,3 +1,12 @@
 * Hyparview Example
 
 A sample client for http://github.com/hashicorp/hyparview over TLS
+
+- [X] Configuration in environment see `main.go`
+- [X] Key generation via make (requires installed consul)
+- [X] GRPC communication that requires client certificates
+  - Enforces CA signing
+  - Only configures CA, own certs
+- [X] `bin/run` Starts a connected cluster
+- [ ] Meaningful status logging
+- [ ] Mechanism to create gossip application messages
