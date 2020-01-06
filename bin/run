@@ -1,0 +1,7 @@
+#!/bin/sh
+mkdir -p data
+count="$1"; shift
+for i in `seq "$count"`; do
+    ./bin/run-one $i > data/$i.log 2>&1 &
+done
+wait
