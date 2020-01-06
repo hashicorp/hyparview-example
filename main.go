@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/hyparview-example/proto"
 	"github.com/kr/pretty"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 // Example is the main entry point
@@ -20,13 +19,14 @@ func main() {
 	addr := os.Getenv("ADDR")
 	boot := os.Getenv("BOOTSTRAP")
 	c, _ := newClient(&clientConfig{
-		id:        newID(),
-		addr:      addr,
-		bootstrap: boot,
-		serverPEM: os.Getenv("SERVER_PEM"),
-		serverKey: os.Getenv("SERVER_KEY"),
-		clientPEM: os.Getenv("CLIENT_PEM"),
-		clientKey: os.Getenv("CLIENT_KEY"),
+		id:         newID(),
+		addr:       addr,
+		bootstrap:  boot,
+		caCert:     os.Getenv("CA_CERT"),
+		serverCert: os.Getenv("SERVER_CERT"),
+		serverKey:  os.Getenv("SERVER_KEY"),
+		clientCert: os.Getenv("CLIENT_CERT"),
+		clientKey:  os.Getenv("CLIENT_KEY"),
 	})
 
 	go runServer(c)
@@ -55,12 +55,12 @@ func (c *client) lpShuffle() {
 func runServer(c *client) {
 	lis, err := net.Listen("tcp", c.config.addr)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		log.Fatalf("error listen: %v", err)
 	}
 
-	creds, err := credentials.NewServerTLSFromFile(c.config.serverPEM, c.config.serverKey)
+	creds, err := serverCreds(c.config)
 	if err != nil {
-		log.Fatalf("Failed to generate credentials %v", err)
+		log.Fatalf("error tls: %v", err)
 	}
 	opts := []grpc.ServerOption{grpc.Creds(creds)}
 
