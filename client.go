@@ -8,16 +8,19 @@ import (
 
 	h "github.com/hashicorp/hyparview"
 	"github.com/hashicorp/hyparview-example/proto"
+	"github.com/kr/pretty"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
 type clientConfig struct {
-	ID          string
-	Addr        string
-	Boot        string
-	RootPEMFile string
-	keyFile     string
+	id        string
+	addr      string
+	bootstrap string
+	serverPEM string
+	serverKey string
+	clientPEM string
+	clientKey string
 }
 
 type conn struct {
@@ -44,7 +47,7 @@ func newID() string {
 
 func newClient(c *clientConfig) (*client, error) {
 	var opts []grpc.DialOption
-	creds, err := credentials.NewClientTLSFromFile(c.RootPEMFile, "")
+	creds, err := credentials.NewClientTLSFromFile(c.clientPEM, c.clientKey)
 	if err != nil {
 		return nil, fmt.Errorf("credential failure: %v", err)
 	}
@@ -53,7 +56,7 @@ func newClient(c *clientConfig) (*client, error) {
 	return &client{
 		config: c,
 		grpc:   opts,
-		hv:     h.CreateView(&h.Node{ID: c.Addr, Addr: c.Addr}, 10000),
+		hv:     h.CreateView(&h.Node{ID: c.addr, Addr: c.addr}, 10000),
 		app:    newGossip(4),
 	}, nil
 }
@@ -142,6 +145,13 @@ func (c *client) sendNeighbor(m *h.NeighborRequest) (*h.NeighborRefuse, error) {
 }
 
 func (c *client) sendShuffle(m *h.ShuffleRequest) (res *h.ShuffleReply, err error) {
+	to := m.To()
+	if to == nil {
+		return nil, nil
+	}
+
+	pretty.Log("debug sendShuffle", m)
+
 	cn, err := c.dial(m.To())
 	if err != nil {
 		return nil, err
