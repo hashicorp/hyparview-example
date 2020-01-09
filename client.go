@@ -184,11 +184,14 @@ func (c *client) drain(count int) {
 	}
 }
 
-func (c *client) failActive(peer *h.Node) error {
+func (c *client) failActive(peer *h.Node) {
+	// peer may be nil, which means that the client found our ActiveView empty. In that
+	// case we can't drop anything, but should recover our active view
 	v := c.hv
 	idx := v.Active.ContainsIndex(peer)
-	if idx < 0 {
-		return nil
+	if idx > -1 {
+		v.Active.DelIndex(idx)
+		c.drop(peer)
 	}
 
 	for _, n := range v.Passive.Shuffled() {
@@ -209,5 +212,4 @@ func (c *client) failActive(peer *h.Node) error {
 			}
 		}
 	}
-	return nil
 }
