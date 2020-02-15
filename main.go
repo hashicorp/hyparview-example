@@ -15,6 +15,8 @@ import (
 func main() {
 	addr := os.Getenv("ADDR")
 	boot := os.Getenv("BOOTSTRAP")
+	http := os.Getenv("HTTP_UI")
+	stat := os.Getenv("STAT_UDP")
 	c := newClient(&clientConfig{
 		id:         newID(),
 		addr:       addr,
@@ -28,9 +30,17 @@ func main() {
 
 	go runServer(c)
 	if boot != addr {
-		log.Printf("info bootstrap %s\n", boot)
 		c.send(h.SendJoin(node(boot), c.hv.Self))
 	}
+
+	if http != "" {
+		stats := newStats()
+		go runStatServer(stat, stats)
+		go runUIServer(http, stats)
+	} else {
+		go runStatClient(c, stat)
+	}
+
 	c.lpShuffle()
 }
 
@@ -39,7 +49,7 @@ func (c *client) lpShuffle() {
 		time.Sleep(10 * time.Second)
 		r, err := c.sendShuffle(c.hv.SendShuffle(c.hv.Peer()))
 		if err != nil {
-			log.Printf("error shuffle send: %v\n", err)
+			// log.Printf("error shuffle send: %v\n", err)
 			continue
 		}
 		if r == nil {
