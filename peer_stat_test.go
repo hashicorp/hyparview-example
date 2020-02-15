@@ -31,7 +31,7 @@ func TestAddrBinaryEmpty(t *testing.T) {
 func TestStatBinary(t *testing.T) {
 	// Empty
 	p := &wireStat{}
-	bs := peerStatBytes(p)
+	bs := p.Bytes()
 	require.Equal(t, 228, len(bs))
 
 	// Fake full client
@@ -48,9 +48,23 @@ func TestStatBinary(t *testing.T) {
 	}
 
 	// Bidirectional encoding
-	p1 := c.makePeerStat()
-	require.Equal(t, 228, len(peerStatBytes(p1)))
+	p1 := c.wireStat()
+	p1.App = 5
+	p1.Hops = 7
+	p1.Waste = 9
+	require.Equal(t, 228, len(p1.Bytes()))
 
-	p2 := bytesPeerStat(peerStatBytes(p1))
+	p2 := &wireStat{}
+	p2.Parse(p1.Bytes())
 	require.Equal(t, p1, p2)
+
+	// Pretty print conversion for json encoding
+	pp := p2.peerStat()
+	require.Equal(t, "127.0.0.1:4001", pp.Active[0])
+	require.Equal(t, "127.0.0.1:4005", pp.Active[4])
+	require.Equal(t, "127.0.0.1:4006", pp.Passive[0])
+	require.Equal(t, "127.0.0.1:4036", pp.Passive[29])
+	require.Equal(t, int32(5), pp.App)
+	require.Equal(t, int32(7), pp.Hops)
+	require.Equal(t, int32(9), pp.Waste)
 }
