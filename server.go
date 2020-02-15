@@ -17,16 +17,26 @@ func newServer(c *client) *server {
 }
 
 func (s *server) Gossip(ctx context.Context, req *proto.GossipRequest) (*proto.GossipResponse, error) {
-	hot := s.c.app.gossipRecv(int(req.Payload))
-	if hot {
-		log.Printf("info gossip recv: %d\n", req.Payload)
-	}
+	hot := s.c.app.gossipRecv(req.Payload, req.Hops)
+	// if hot {
+	// 	log.Printf("info gossip recv: %d\n", req.Payload)
+	// }
 
 	return &proto.GossipResponse{Hot: hot}, nil
 }
 
+func (s *server) View(ctx context.Context, req *proto.Empty) (*proto.ViewResponse, error) {
+	return &proto.ViewResponse{
+		From: s.c.hv.Self.Addr
+		Active:  sliceNodeAddr(s.c.hv.Active.Nodes),
+		Passive: sliceNodeAddr(s.c.hv.Passive.Nodes),
+		App: s.c.app.Value,
+		Hops: s.c.app.Hops,
+	}
+}
+
 func (s *server) Join(ctx context.Context, req *proto.FromRequest) (*proto.Empty, error) {
-	log.Printf("info join recv: %s\n", req.From)
+	// log.Printf("info join recv: %s\n", req.From)
 	to, from := s.c.hv.Self, node(req.From)
 	ms := s.c.hv.RecvJoin(h.SendJoin(to, from))
 	s.c.outbox(ms...)
@@ -57,7 +67,7 @@ func (s *server) Neighbor(ctx context.Context, req *proto.NeighborRequest) (*pro
 }
 
 func (s *server) Shuffle(ctx context.Context, req *proto.ShuffleRequest) (*proto.ShuffleReply, error) {
-	log.Printf("info shuffle recv: %s\n", req.From)
+	// log.Printf("info shuffle recv: %s\n", req.From)
 	to, from := s.c.hv.Self, node(req.From)
 	active := sliceAddrNode(req.Active)
 	passive := sliceAddrNode(req.Passive)
