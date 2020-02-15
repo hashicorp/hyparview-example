@@ -3,8 +3,10 @@ package hashicorp.hyparview.example.stat;
 option go_package = "proto";
 
 service Stat {
-  rpc View (Empty) returns (ViewResponse) {}
+  rpc View (StatEmpty) returns (ViewResponse) {}
 }
+
+message StatEmpty {}
 
 message ViewResponse {
   repeated string active = 1;
@@ -12,4 +14,5 @@ message ViewResponse {
   string from = 3;
   int32 app = 4;
   int32 hops = 5;
+  int32 waste = 6;
 }
