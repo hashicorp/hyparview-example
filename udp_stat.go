@@ -2,11 +2,13 @@ package main
 
 import (
 	"net"
+	"time"
+
 	h "github.com/hashicorp/hyparview"
 )
 
 type stats struct {
-	safe map[string]*wireStat
+	safe map[string]*peerStat
 }
 
 func newStats() *stats {
@@ -16,44 +18,43 @@ func newStats() *stats {
 // runStatServer runs forever, populating the stats struct
 func runStatServer(addr string, stats *stats) {
 	parsers := 10
-	inbox := make(chan [STAT_SIZE]byte, parsers * 2)
+	inbox := make(chan []byte, parsers*2)
 	update := make(chan *peerStat, 5)
 
 	// Start some parsers
-	w := &wireStat{}	
-	for i:=0; i<parsers; i++ {
+	w := &wireStat{}
+	for i := 0; i < parsers; i++ {
 		go func() {
-			p <-inbox
-			w.Parse(p)
-			update <-w.peerStat()
-		}
+			p := <-inbox
+			w.Parse(p[:])
+			update <- w.peerStat()
+		}()
 	}
 
 	// Start the updater
 	go func() {
-		p <-update
+		p := <-update
 		stats.safe[p.From] = p
-	}
-	
+	}()
+
 	// Finally, one listener
 	pc, _ := net.ListenPacket("udp", addr)
 	defer pc.Close()
 
 	for {
-		buf := [STAT_SIZE]byte{}
+		buf := make([]byte, STAT_SIZE)
 		pc.ReadFrom(buf)
-		inbox <-buf
+		inbox <- buf
 	}
 }
 
 // runStatClient blocks forever sending stats on a random interval to the remote addr
 func runStatClient(c *client, addr string) {
-	conn := net.Dial("udp", addr)
+	conn, _ := net.Dial("udp", addr)
 	defer conn.Close()
 
-	var stats 
 	for {
-		time.Sleep(h.Rint(500))
+		time.Sleep(time.Duration(h.Rint(500)) * time.Millisecond)
 		conn.Write(c.wireStat().Bytes())
 	}
 }
