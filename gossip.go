@@ -14,7 +14,7 @@ type gossip struct {
 	Hot     int   // gossip hotness
 	Hops    int32 // number of hops the current value took to get here
 	Seen    int   // if app == appSeen, we got every message
-	Waste   int   // count of app messages that didn't change the value
+	Waste   int32 // count of app messages that didn't change the value
 }
 
 func newGossip(maxHeat int) *gossip {
@@ -56,7 +56,7 @@ func (c *client) gossipSendSync(peer *h.Node) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	req := &proto.GossipRequest{Payload: c.app.payload, Hops: c.app.hops}
+	req := &proto.GossipRequest{Payload: c.app.Value, Hops: c.app.Hops}
 	r, err := grpc.Gossip(ctx, req)
 	return r.GetHot(), err
 }
@@ -68,7 +68,7 @@ func (app *gossip) gossipRecv(payload, hops int32) bool {
 		return false
 	}
 	app.Value = payload
-	app.Hops = hops++
+	app.Hops = hops + 1
 	app.Hot = app.MaxHeat
 
 	// Lifetime total count

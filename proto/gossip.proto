@@ -1,5 +1,4 @@
 syntax = "proto3";
-
 package hashicorp.hyparview.example.gossip;
 option go_package = "proto";
 
@@ -9,7 +8,7 @@ service Gossip {
 
 message GossipRequest {
   int32 payload = 1;
-  int32 hops = 1;
+  int32 hops = 2;
 }
 
 message GossipResponse {
