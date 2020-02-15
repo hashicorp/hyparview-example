@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	// "log"
 
 	h "github.com/hashicorp/hyparview"
 	"github.com/hashicorp/hyparview-example/proto"
@@ -25,37 +25,38 @@ func (s *server) Gossip(ctx context.Context, req *proto.GossipRequest) (*proto.G
 	return &proto.GossipResponse{Hot: hot}, nil
 }
 
-func (s *server) View(ctx context.Context, req *proto.Empty) (*proto.ViewResponse, error) {
+func (s *server) View(ctx context.Context, req *proto.StatEmpty) (*proto.ViewResponse, error) {
 	return &proto.ViewResponse{
-		From: s.c.hv.Self.Addr
+		From:    s.c.hv.Self.Addr,
 		Active:  sliceNodeAddr(s.c.hv.Active.Nodes),
 		Passive: sliceNodeAddr(s.c.hv.Passive.Nodes),
-		App: s.c.app.Value,
-		Hops: s.c.app.Hops,
-	}
+		App:     s.c.app.Value,
+		Hops:    s.c.app.Hops,
+		Waste:   s.c.app.Waste,
+	}, nil
 }
 
-func (s *server) Join(ctx context.Context, req *proto.FromRequest) (*proto.Empty, error) {
+func (s *server) Join(ctx context.Context, req *proto.FromRequest) (*proto.HyparviewEmpty, error) {
 	// log.Printf("info join recv: %s\n", req.From)
 	to, from := s.c.hv.Self, node(req.From)
 	ms := s.c.hv.RecvJoin(h.SendJoin(to, from))
 	s.c.outbox(ms...)
-	return &proto.Empty{}, nil
+	return &proto.HyparviewEmpty{}, nil
 }
 
-func (s *server) ForwardJoin(ctx context.Context, req *proto.ForwardJoinRequest) (*proto.Empty, error) {
+func (s *server) ForwardJoin(ctx context.Context, req *proto.ForwardJoinRequest) (*proto.HyparviewEmpty, error) {
 	to, from := s.c.hv.Self, node(req.From)
 	join := &h.Node{Addr: req.Join}
 	ttl := int(req.Ttl)
 	ms := s.c.hv.RecvForwardJoin(h.SendForwardJoin(to, from, join, ttl))
 	s.c.outbox(ms...)
-	return &proto.Empty{}, nil
+	return &proto.HyparviewEmpty{}, nil
 }
 
-func (s *server) Disconnect(ctx context.Context, req *proto.FromRequest) (*proto.Empty, error) {
+func (s *server) Disconnect(ctx context.Context, req *proto.FromRequest) (*proto.HyparviewEmpty, error) {
 	to, from := s.c.hv.Self, node(req.From)
 	s.c.hv.RecvDisconnect(h.SendDisconnect(to, from))
-	return &proto.Empty{}, nil
+	return &proto.HyparviewEmpty{}, nil
 }
 
 func (s *server) Neighbor(ctx context.Context, req *proto.NeighborRequest) (*proto.NeighborResponse, error) {
