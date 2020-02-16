@@ -7,6 +7,9 @@ build: bin/hyparview-example
 root: cert/$(DOMAIN)-agent-ca.pem
 .PHONEY: root
 
+ssh-keys: terraform/demo-key.aws
+.PHONEY: ssh-keys
+
 # ======================================================================
 # Implementation
 
@@ -34,3 +37,20 @@ cert/$(DOMAIN)-client-%.pem: cert/$(DOMAIN)-agent-ca.pem
 	cd cert && consul tls cert create -client -domain $(DOMAIN)
 	mv cert/dc1-client-$(DOMAIN)-0.pem $@
 	mv cert/dc1-client-$(DOMAIN)-0-key.pem $(basename $@)-key.pem
+
+# ======================================================================
+# Demo
+
+terraform/hosts: terraform/apply
+	(cd terraform; terraform show -json) \
+	| jq -M '.values.root_module.resources[].values.public_ip' \
+	| grep -v null \
+	> $@
+
+terraform/apply: terraform/demo-key.pub
+	cd terraform; terraform apply
+	touch $@
+
+terraform/demo-key.pub:
+	ssh-keygen -t rsa -f $(basename $@)
+	chmod 600 demo-key*
