@@ -33,7 +33,7 @@ func main() {
 		c.send(h.SendJoin(node(boot), c.hv.Self))
 	}
 
-	if http != "" {
+	if http == addr {
 		stats := newStats()
 		go runStatServer(stat, stats)
 		go runUIServer(http, stats)
