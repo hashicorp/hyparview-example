@@ -1,10 +1,23 @@
-#!/bin/sh
-make build root
+#!/bin/bash
+set -e
 
-cat <<EOF | ssh -T "$1" 'sh -s'
-mkdir -p hveg hveg/cert
+required="DOMAIN BOOTSTRAP PUBLIC STAT_UDP"
+
+for e in $required; do
+    [ -z "${!e}" ] && {
+	echo "usage: $required $0" 1>&2
+	exit 2
+    }
+done
+
+cat <<EOF | ssh -T -o 'StrictHostKeyChecking=accept-new' "$1" 'sh -s'
+mkdir -p hveg hveg/cert hveg/env
 EOF
 
-scp -rp bin "$1"
-scp GNUmakefile "$1:hveg"
-scp "cert/$DOMAIN-agent-ca.pem" "$1:hveg/cert"
+for e in $required LO HI; do
+    echo "${!e}" | ssh -T "$1" "cat >hveg/env/$e"
+done
+
+rsync -pr bin/ "$1:hveg/bin/"
+rsync -p GNUmakefile "$1:hveg"
+rsync -p "cert/$DOMAIN-agent-ca.pem" "$1:hveg/cert"

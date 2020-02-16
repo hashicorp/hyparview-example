@@ -1,11 +1,20 @@
-#!/bin/sh
+#!/bin/bash
 set -ea
-[ -z "$DOMAIN" ] && DOMAIN=test
-[ -z "$PUBLIC" ] && PUBLIC=`cat public.txt || echo 127.0.0.1`
-[ -z "$BOOTSTRAP" ] && BOOTSTRAP=`cat bootstrap.txt || echo 127.0.0.1:10000`
+
+DOMAIN=test
+PUBLIC="127.0.0.1"
+BOOTSTRAP="127.0.0.1:10000"
+STAT_UDP="127.0.0.1:10000"
+LO=0
+HI=10
+
+for e in DOMAIN BOOTSTRAP PUBLIC STAT_UDP LO HI; do
+    [ -r "env/$e" ] && "$e"=`cat "env/$e"`
+done
 
 mkdir -p data
-for i in `seq -f%04g "$1" "$2"`; do
+
+for i in `seq -f%04g "$LO" "$HI"`; do
     ./bin/run-one $i > data/$i.log 2>&1 &
 done
 wait

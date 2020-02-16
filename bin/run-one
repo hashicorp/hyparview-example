@@ -1,7 +1,14 @@
-#!/bin/sh
-[ -z "$DOMAIN" ] && exit 1
-[ -z "$PUBLIC" ] && exit 1
-[ -z "$BOOTSTRAP" ] && exit 1
+#!/bin/bash
+set -e
+
+required="DOMAIN BOOTSTRAP PUBLIC"
+
+for e in $required; do
+    [ -z "${!e}" ] && {
+	echo "usage: $required $0 port" 1>&2
+	exit 2
+    }
+done
 
 set -ea
 
