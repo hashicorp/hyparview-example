@@ -41,10 +41,17 @@ cert/$(DOMAIN)-client-%.pem: cert/$(DOMAIN)-agent-ca.pem
 # ======================================================================
 # Demo
 
+terraform/destroy:
+	(cd terraform; terraform destroy)
+	rm terraform/apply
+	rm terraform/hosts
+.PHONEY:terraform/destroy
+
 terraform/hosts: terraform/apply
 	(cd terraform; terraform show -json) \
 	| jq -M '.values.root_module.resources[].values.public_ip' \
 	| grep -v null \
+	| sed 's/"//g' \
 	> $@
 
 terraform/apply: terraform/demo-key.pub
