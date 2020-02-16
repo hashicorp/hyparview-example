@@ -1,7 +1,11 @@
 #!/bin/sh
+set -ea
+[ -z "$DOMAIN" ] && DOMAIN=test
+[ -z "$PUBLIC" ] && PUBLIC=`cat public.txt || echo 127.0.0.1`
+[ -z "$BOOTSTRAP" ] && BOOTSTRAP=`cat bootstrap.txt || echo 127.0.0.1:10000`
+
 mkdir -p data
-count="$1"; shift
-for i in `seq "$count"`; do
+for i in `seq -f%04g "$1" "$2"`; do
     ./bin/run-one $i > data/$i.log 2>&1 &
 done
 wait

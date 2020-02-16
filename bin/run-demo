@@ -1,0 +1,10 @@
+#!/bin/sh
+mkdir -p data
+
+set -e
+
+(cd terraform; terraform show -json) \
+| jq -M '.values.root_module.resources[].values.public_ip' \
+| grep -v null \
+> data/hosts
+

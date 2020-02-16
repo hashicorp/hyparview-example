@@ -1,0 +1,10 @@
+#!/bin/sh
+make build root
+
+cat <<EOF | ssh -T "$1" 'sh -s'
+mkdir -p hveg hveg/cert
+EOF
+
+scp -rp bin "$1"
+scp GNUmakefile "$1:hveg"
+scp "cert/$DOMAIN-agent-ca.pem" "$1:hveg/cert"

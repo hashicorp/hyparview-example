@@ -1,18 +1,16 @@
 #!/bin/sh
-[ -z "$DOMAIN" ] && DOMAIN=test
-export DOMAIN
+[ -z "$DOMAIN" ] && exit 1
+[ -z "$PUBLIC" ] && exit 1
+[ -z "$BOOTSTRAP" ] && exit 1
 
-make build root
+set -ea
 
-n="$1"; shift
-ADDR=localhost:444$n
-BOOTSTRAP=localhost:4441
-CA_CERT=cert/"$DOMAIN"-agent-ca.pem
-SERVER_CERT=cert/"$DOMAIN"-server-$n.pem
-SERVER_KEY=cert/"$DOMAIN"-server-$n-key.pem
-CLIENT_CERT=cert/"$DOMAIN"-client-$n.pem
-CLIENT_KEY=cert/"$DOMAIN"-client-$n-key.pem
-export ADDR BOOTSTRAP CA_CERT SERVER_CERT SERVER_KEY CLIENT_CERT CLIENT_KEY
+ADDR="$PUBLIC:1$1"
+CA_CERT="cert/$DOMAIN-agent-ca.pem"
+SERVER_CERT="cert/$DOMAIN-server-$1.pem"
+SERVER_KEY="cert/$DOMAIN-server-$1-key.pem"
+CLIENT_CERT="cert/$DOMAIN-client-$1.pem"
+CLIENT_KEY="cert/$DOMAIN-client-$1-key.pem"
 
 make "$SERVER_CERT" "$CLIENT_CERT"
 bin/hyparview-example
