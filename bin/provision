@@ -12,6 +12,11 @@ done
 
 cat <<EOF | ssh -T -o 'StrictHostKeyChecking=accept-new' "$1" 'sh -s'
 mkdir -p hveg hveg/cert hveg/env
+
+[ -x /usr/local/bin/consul ] && exit 0
+wget -q https://releases.hashicorp.com/consul/1.7.0/consul_1.7.0_linux_amd64.zip
+unzip consul_1.7.0_linux_amd64.zip
+sudo mv consul /usr/local/bin
 EOF
 
 for e in $required HTTP_UI LO HI; do

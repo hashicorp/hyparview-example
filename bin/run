@@ -7,7 +7,7 @@ BOOTSTRAP="127.0.0.1:10000"
 STAT_UDP="127.0.0.1:10000"
 HTTP_UI="127.0.0.1:8080"
 LO=0
-HI=2
+HI=5
 
 required="DOMAIN BOOTSTRAP PUBLIC STAT_UDP"
 
@@ -18,7 +18,14 @@ done
 mkdir -p data
 
 for i in `seq -f%04g "$LO" "$HI"`; do
-    ./bin/run-one $i > data/$i.log 2>&1 &
+    # using the consul tool, so the make has to be single threaded
+    # SERVER_CERT="cert/$DOMAIN-server-$1.pem"
+    # CLIENT_CERT="cert/$DOMAIN-client-$1.pem"
+    # make "$SERVER_CERT" "$CLIENT_CERT"
+
+    sh -x bin/run-one $i > data/$i.log 2>&1 &
     HTTP_UI=""
 done
+
+trap 'kill $(jobs -p)' EXIT
 wait

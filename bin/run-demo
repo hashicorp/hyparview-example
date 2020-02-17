@@ -6,21 +6,32 @@ make build root terraform/hosts
 boot=`head -n1 terraform/hosts`
 rest=`tail -n+2 terraform/hosts`
 
-set -ae
+set -a
 
 DOMAIN="test"
 BOOTSTRAP="$boot:10000"
 STAT_UDP="$BOOTSTRAP"
 HTTP_UI="$boot:8080"
 
+# Provision sets up `boot` :10000 well-known bootstrap server, :8080
+# as the http endpoint for the deom visualization, and :23456 as the
+# udp stats collector
+
+# `hveg` is configured with the GNUmakefile (to support creating
+# server & client certificates for each node) and with the run script,
+# which is kicked off on each box as the supervisor
+
+PER=200
 LO=0
-HI=199
+HI=$(($PER - 1))
 
 for h in `cat terraform/hosts`; do
     PUBLIC="$h:" bin/provision "ec2-user@$h" &
     LO=$(($HI + 1))
-    HI=$(($HI + 200))
+    HI=$(($HI + $PER))
     HTTP_UI=""
 done
 wait
 
+echo 'Shell helpers:'
+echo '    . bin/demo-sh'

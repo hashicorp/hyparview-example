@@ -10,7 +10,7 @@ for e in $required; do
     }
 done
 
-set -ea
+set -a
 
 ADDR="$PUBLIC:1$1"
 CA_CERT="cert/$DOMAIN-agent-ca.pem"
@@ -20,4 +20,4 @@ CLIENT_CERT="cert/$DOMAIN-client-$1.pem"
 CLIENT_KEY="cert/$DOMAIN-client-$1-key.pem"
 
 make "$SERVER_CERT" "$CLIENT_CERT"
-bin/hyparview-example
+exec bin/hyparview-example

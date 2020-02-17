@@ -1,0 +1,24 @@
+#!/bin/sh
+
+boot="ec2-user@`head -1 terraform/hosts`"
+two="ec2-user@`head -2 terraform/hosts|tail -1`"
+three="ec2-user@`head -3 terraform/hosts|tail -1`"
+four="ec2-user@`head -4 terraform/hosts|tail -1`"
+five="ec2-user@`head -5 terraform/hosts|tail -1`"
+
+function demomux () {
+    tmux new-session \
+	 "ssh $boot" \; \
+	 split-window "ssh $two" \; \
+	 split-window "ssh $three" \; \
+	 split-window "ssh $four" \; \
+	 split-window "ssh $five" \; \
+	 select-layout tiled \; \
+	 bind "C-y" set-window-option synchronize-panes \; \
+	 select-pane -T boot -t 0 \; \
+	 send-keys "echo This is the bootstrap server! Toggle synchronize-panes with C-b C-y" \; \
+	 set-window-option synchronize-panes
+}
+
+echo 'ssh $boot, $two, $three, $four, $five'
+echo 'demomux: create a new tmux session open to all five servers'
