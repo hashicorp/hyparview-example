@@ -70,13 +70,12 @@ func newID() string {
 
 func newClient(c *clientConfig) *client {
 	return &client{
-		config:   c,
-		hv:       h.CreateView(&h.Node{ID: c.addr, Addr: c.addr}, c.hvClientCount),
-		app:      newGossip(c.gossipMaxHeat),
-		conn:     map[string]*conn{},
-		connLock: sync.RWMutex{},
-		in:       make(chan *message, c.hvInboxBuffer),
-		out:      make(chan h.Message, c.hvOutboxBuffer),
+		config: c,
+		hv:     h.CreateView(&h.Node{ID: c.addr, Addr: c.addr}, c.hvClientCount),
+		app:    newGossip(c.gossipMaxHeat),
+		conn:   map[string]*conn{},
+		in:     make(chan *message, c.hvInboxBuffer),
+		out:    make(chan h.Message, c.hvOutboxBuffer),
 	}
 }
 
