@@ -7,7 +7,8 @@ service Hyparview {
   rpc ForwardJoin (ForwardJoinRequest) returns (HyparviewEmpty) {}
   rpc Disconnect (FromRequest) returns (HyparviewEmpty) {}
   rpc Neighbor (NeighborRequest) returns (NeighborResponse) {}
-  rpc Shuffle (ShuffleRequest) returns (ShuffleReply) {}
+  rpc Shuffle (ShuffleRequest) returns (HyparviewEmpty) {}
+  rpc ShuffleReply (ShuffleReplyRequest) returns (HyparviewEmpty) {}
 }
 
 message HyparviewEmpty {}
@@ -39,7 +40,7 @@ message ShuffleRequest {
   string from = 4;
 }
 
-message ShuffleReply {
+message ShuffleReplyRequest {
   repeated string passive = 1;
   string from = 2;
 }
