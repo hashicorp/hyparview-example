@@ -68,21 +68,23 @@ func (s *server) Neighbor(ctx context.Context, req *proto.NeighborRequest) (*pro
 }
 
 func (s *server) Shuffle(ctx context.Context, req *proto.ShuffleRequest) (*proto.ShuffleReply, error) {
-	// log.Printf("info shuffle recv: %s\n", req.From)
 	to, from := s.c.hv.Self, node(req.From)
 	active := sliceAddrNode(req.Active)
 	passive := sliceAddrNode(req.Passive)
 	ttl := int(req.Ttl)
 	ms := s.c.hv.RecvShuffle(h.SendShuffle(to, from, active, passive, ttl))
 
-	var res *proto.ShuffleReply
+	res := &proto.ShuffleReply{
+		From:    s.c.hv.Self.Addr,
+		Passive: []string{},
+	}
 
 	for _, m := range ms {
 		switch v := m.(type) {
 		case *h.ShuffleRequest:
 			s.c.outbox(v)
 		case *h.ShuffleReply:
-			res = &proto.ShuffleReply{Passive: sliceNodeAddr(v.Passive)}
+			res.Passive = sliceNodeAddr(v.Passive)
 		}
 	}
 
