@@ -33,9 +33,17 @@ func main() {
 		clientCert: os.Getenv("CLIENT_CERT"),
 		clientKey:  os.Getenv("CLIENT_KEY"),
 
-		sendFanOut:     10,
-		statMillis:     1500,
+		sendFanOut:     20,
 		shuffleSeconds: 30,
+		hvClientCount:  1000,
+		hvInboxBuffer:  1024,
+		hvOutboxBuffer: 1024,
+		gossipMaxHeat:  5,
+
+		statParseFanOut:  4,
+		statParseBuffer:  100,
+		statMillis:       1500,
+		statUpdateBuffer: 1024,
 	})
 
 	go runServer(c)
