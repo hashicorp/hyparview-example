@@ -85,16 +85,11 @@ func (c *client) runShuffle() {
 		}
 
 		req := c.hv.SendShuffle(c.hv.Peer())
-		r, err := c.sendShuffle(req)
+		err := c.send(req)
 		if err != nil {
 			log.Printf("error: shuffle send: %v\n", err)
 			continue
 		}
-		if r == nil {
-			continue
-		}
-
-		c.hv.RecvShuffleReply(r)
 	}
 }
 
