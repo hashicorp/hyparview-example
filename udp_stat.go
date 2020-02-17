@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net"
 	"time"
 
@@ -12,11 +13,15 @@ type stats struct {
 }
 
 func newStats() *stats {
-	return &stats{}
+	return &stats{
+		safe: map[string]*peerStat{},
+	}
 }
 
 // runStatServer runs forever, populating the stats struct
-func runStatServer(addr string, stats *stats) {
+func runStatServer(addr string, stats *stats, c *client) {
+	log.Printf("debug: starting stat server %s", addr)
+
 	parsers := 10
 	inbox := make(chan []byte, parsers*2)
 	update := make(chan *peerStat, 5)
@@ -25,16 +30,28 @@ func runStatServer(addr string, stats *stats) {
 	w := &wireStat{}
 	for i := 0; i < parsers; i++ {
 		go func() {
-			p := <-inbox
-			w.Parse(p[:])
-			update <- w.peerStat()
+			for {
+				p := <-inbox
+				w.Parse(p[:])
+				update <- w.peerStat()
+			}
 		}()
 	}
 
 	// Start the updater
 	go func() {
-		p := <-update
-		stats.safe[p.From] = p
+		for {
+			p := <-update
+			stats.safe[p.From] = p
+		}
+	}()
+
+	// Update our own stats
+	go func() {
+		for {
+			time.Sleep(time.Duration(h.Rint(500)) * time.Millisecond)
+			update <- c.wireStat().peerStat()
+		}
 	}()
 
 	// Finally, one listener
@@ -50,11 +67,24 @@ func runStatServer(addr string, stats *stats) {
 
 // runStatClient blocks forever sending stats on a random interval to the remote addr
 func runStatClient(c *client, addr string) {
-	conn, _ := net.Dial("udp", addr)
+	log.Printf("debug: stat client %s", addr)
+
+	// Retry connections until we get through
+	conn, err := net.Dial("udp", addr)
+	for {
+		if err == nil {
+			break
+		}
+		log.Printf("info: stat client %v", err)
+		time.Sleep(time.Second)
+		conn, err = net.Dial("udp", addr)
+	}
 	defer conn.Close()
 
 	for {
 		time.Sleep(time.Duration(h.Rint(500)) * time.Millisecond)
-		conn.Write(c.wireStat().Bytes())
+		ws := c.wireStat()
+		conn.Write(ws.Bytes())
+		// pretty.Log("STAT", ws.peerStat())
 	}
 }
