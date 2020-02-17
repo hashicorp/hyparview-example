@@ -3,10 +3,12 @@ package main
 import (
 	"log"
 	"net"
+	"sync"
 )
 
 type stats struct {
 	safe map[string]*peerStat
+	lock sync.RWMutex
 }
 
 func newStats() *stats {
@@ -39,7 +41,9 @@ func runStatServer(addr string, stats *stats, c *client) {
 	go func() {
 		for {
 			p := <-update
+			stats.lock.Lock()
 			stats.safe[p.From] = p
+			stats.lock.Unlock()
 		}
 	}()
 
