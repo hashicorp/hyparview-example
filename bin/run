@@ -12,7 +12,7 @@ HI=5
 required="DOMAIN BOOTSTRAP PUBLIC STAT_UDP"
 
 for e in $required HTTP_UI LO HI; do
-    [ -r "env/$e" ] && "$e"=`cat "env/$e"`
+    [ -r "env/$e" ] && eval "$e=`cat "env/$e"`"
 done
 
 mkdir -p data
@@ -23,7 +23,7 @@ for i in `seq -f%04g "$LO" "$HI"`; do
     # CLIENT_CERT="cert/$DOMAIN-client-$1.pem"
     # make "$SERVER_CERT" "$CLIENT_CERT"
 
-    sh -x bin/run-one $i > data/$i.log 2>&1 &
+    bin/run-one $i > data/$i.log 2>&1 &
     HTTP_UI=""
 done
 

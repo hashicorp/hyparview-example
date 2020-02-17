@@ -10,7 +10,7 @@ for e in $required; do
     }
 done
 
-set -a
+set -ax
 
 ADDR="$PUBLIC:1$1"
 CA_CERT="cert/$DOMAIN-agent-ca.pem"
