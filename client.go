@@ -35,7 +35,7 @@ type client struct {
 	hv     *h.Hyparview
 	app    *gossip
 	conn   map[string]*conn
-	out    []h.Message
+	out    chan h.Message
 }
 
 func newID() string {
@@ -50,7 +50,7 @@ func newClient(c *clientConfig) *client {
 		hv:     h.CreateView(&h.Node{ID: c.addr, Addr: c.addr}, 10000),
 		app:    newGossip(4),
 		conn:   map[string]*conn{},
-		out:    []h.Message{},
+		out:    make(chan h.Message, 2048),
 	}
 }
 
@@ -177,16 +177,8 @@ func (c *client) sendShuffle(m *h.ShuffleRequest) (res *h.ShuffleReply, err erro
 }
 
 func (c *client) outbox(ms ...h.Message) {
-	c.out = append(c.out, ms...)
-}
-
-func (c *client) drain(count int) {
-	for i := count; i > 0; i-- {
-		err := c.send(c.out[0])
-		if err != nil {
-			continue
-		}
-		c.out = c.out[1:]
+	for _, m := range ms {
+		c.out <- m
 	}
 }
 
@@ -214,6 +206,12 @@ func (c *client) failActive(peer *h.Node) {
 		m := h.SendNeighbor(n, v.Self, pri)
 		res, err := c.sendNeighbor(m)
 
+		// If refused, keep going, and keep this server in the list
+		if res != nil {
+			log.Printf("info: failActive refuse %s", n.Addr)
+			continue
+		}
+
 		// Either moved to the active view, or failed
 		v.DelPassive(n)
 
@@ -222,15 +220,7 @@ func (c *client) failActive(peer *h.Node) {
 			continue
 		}
 
-		if res != nil {
-			log.Printf("info: failActive refuse %s", n.Addr)
-			continue
-		}
-
-		// empty low priority response is success, hi priority is always empty
-		if res == nil {
-			c.outbox(v.AddActive(n)...)
-			break
-		}
+		c.outbox(v.AddActive(n)...)
+		break
 	}
 }
