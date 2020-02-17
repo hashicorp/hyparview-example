@@ -3,9 +3,6 @@ package main
 import (
 	"log"
 	"net"
-	"time"
-
-	h "github.com/hashicorp/hyparview"
 )
 
 type stats struct {
@@ -22,9 +19,9 @@ func newStats() *stats {
 func runStatServer(addr string, stats *stats, c *client) {
 	log.Printf("debug: starting stat server %s", addr)
 
-	parsers := 10
-	inbox := make(chan []byte, parsers*2)
-	update := make(chan *peerStat, 5)
+	parsers := c.config.statParseFanOut
+	inbox := make(chan []byte, parsers*c.config.statParseBuffer)
+	update := make(chan *peerStat, c.config.statUpdateBuffer)
 
 	// Start some parsers
 	w := &wireStat{}
@@ -49,7 +46,7 @@ func runStatServer(addr string, stats *stats, c *client) {
 	// Update our own stats
 	go func() {
 		for {
-			time.Sleep(time.Duration(h.Rint(500)) * time.Millisecond)
+			c.statSleep()
 			update <- c.wireStat().peerStat()
 		}
 	}()
@@ -69,22 +66,13 @@ func runStatServer(addr string, stats *stats, c *client) {
 func runStatClient(c *client, addr string) {
 	log.Printf("debug: stat client %s", addr)
 
-	// Retry connections until we get through
-	conn, err := net.Dial("udp", addr)
-	for {
-		if err == nil {
-			break
-		}
-		log.Printf("info: stat client %v", err)
-		time.Sleep(time.Second)
-		conn, err = net.Dial("udp", addr)
-	}
+	// Under the impression that udp dial won't return an error :shrug:
+	conn, _ := net.Dial("udp", addr)
 	defer conn.Close()
 
 	for {
-		time.Sleep(time.Duration(h.Rint(500)) * time.Millisecond)
+		c.statSleep()
 		ws := c.wireStat()
 		conn.Write(ws.Bytes())
-		// pretty.Log("STAT", ws.peerStat())
 	}
 }
