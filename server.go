@@ -66,27 +66,18 @@ func (s *server) Neighbor(ctx context.Context, req *proto.NeighborRequest) (*pro
 	return &proto.NeighborResponse{Accept: accept}, nil
 }
 
-func (s *server) Shuffle(ctx context.Context, req *proto.ShuffleRequest) (*proto.ShuffleReply, error) {
+func (s *server) Shuffle(ctx context.Context, req *proto.ShuffleRequest) (*proto.HyparviewEmpty, error) {
 	to, from := s.c.hv.Self, node(req.From)
 	active := sliceAddrNode(req.Active)
 	passive := sliceAddrNode(req.Passive)
 	ttl := int(req.Ttl)
-	k := s.c.inboxAwait(h.SendShuffle(to, from, active, passive, ttl))
-	ms := <-k
+	s.c.inbox(h.SendShuffle(to, from, active, passive, ttl))
+	return &proto.HyparviewEmpty{}, nil
+}
 
-	res := &proto.ShuffleReply{
-		From:    s.c.hv.Self.Addr,
-		Passive: []string{},
-	}
-
-	for _, m := range ms {
-		switch v := m.(type) {
-		case *h.ShuffleRequest:
-			s.c.outbox(v)
-		case *h.ShuffleReply:
-			res.Passive = sliceNodeAddr(v.Passive)
-		}
-	}
-
-	return res, nil
+func (s *server) ShuffleReply(ctx context.Context, req *proto.ShuffleReplyRequest) (*proto.HyparviewEmpty, error) {
+	to, from := s.c.hv.Self, node(req.From)
+	passive := sliceAddrNode(req.Passive)
+	s.c.inbox(h.SendShuffleReply(to, from, passive))
+	return &proto.HyparviewEmpty{}, nil
 }
