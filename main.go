@@ -29,6 +29,8 @@ func main() {
 	})
 
 	go runServer(c)
+	go runClient(c)
+
 	if boot != addr {
 		for {
 			err := c.send(h.SendJoin(node(boot), c.hv.Self))
@@ -91,4 +93,16 @@ func runServer(c *client) {
 	proto.RegisterHyparviewServer(grpcServer, srv)
 	proto.RegisterGossipServer(grpcServer, srv)
 	grpcServer.Serve(lis)
+}
+
+func runClient(c *client) {
+	// fan out for sending
+	for i := 0; i < 10; i++ {
+		go func() {
+			for {
+				m := <-c.out
+				c.send(m)
+			}
+		}()
+	}
 }
