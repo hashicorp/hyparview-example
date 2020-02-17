@@ -29,6 +29,7 @@ type clientConfig struct {
 	statParseBuffer  int
 	statMillis       int
 	statUpdateBuffer int
+	statUDPBuffer    int
 
 	id         string
 	addr       string

@@ -44,6 +44,7 @@ func main() {
 		statParseBuffer:  100,
 		statMillis:       1500,
 		statUpdateBuffer: 1024,
+		statUDPBuffer:    1048576,
 	})
 
 	go runServer(c)
