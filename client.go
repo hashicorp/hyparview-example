@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	h "github.com/hashicorp/hyparview"
@@ -32,10 +33,17 @@ type conn struct {
 type client struct {
 	config *clientConfig
 	grpc   []grpc.DialOption
-	hv     *h.Hyparview
-	app    *gossip
-	conn   map[string]*conn
-	out    chan h.Message
+
+	app *gossip
+
+	conn     map[string]*conn
+	connLock sync.RWMutex
+
+	hv *h.Hyparview
+	// in serializes changes to hv
+	in chan *message
+	// out fans out to a dedicated set of senders
+	out chan h.Message
 }
 
 func newID() string {
@@ -46,16 +54,20 @@ func newID() string {
 
 func newClient(c *clientConfig) *client {
 	return &client{
-		config: c,
-		hv:     h.CreateView(&h.Node{ID: c.addr, Addr: c.addr}, 10000),
-		app:    newGossip(4),
-		conn:   map[string]*conn{},
-		out:    make(chan h.Message, 2048),
+		config:   c,
+		hv:       h.CreateView(&h.Node{ID: c.addr, Addr: c.addr}, 10000),
+		app:      newGossip(4),
+		conn:     map[string]*conn{},
+		connLock: sync.RWMutex{},
+		in:       make(chan *message, 2048),
+		out:      make(chan h.Message, 2048),
 	}
 }
 
 func (c *client) dial(node *h.Node) (*conn, error) {
+	c.connLock.RLock()
 	cn, ok := c.conn[node.Addr]
+	c.connLock.RUnlock()
 	if ok {
 		return cn, nil
 	}
@@ -77,11 +89,15 @@ func (c *client) dial(node *h.Node) (*conn, error) {
 		g: proto.NewGossipClient(g),
 	}
 
+	c.connLock.Lock()
+	defer c.connLock.Unlock()
 	c.conn[node.Addr] = cn
 	return cn, nil
 }
 
 func (c *client) drop(node *h.Node) {
+	c.connLock.Lock()
+	defer c.connLock.Unlock()
 	cn, _ := c.conn[node.Addr]
 	if cn != nil {
 		cn.c.Close()
@@ -182,21 +198,87 @@ func (c *client) outbox(ms ...h.Message) {
 	}
 }
 
+// message wraps the hyparview message with an optional return channel. For calls (like
+// shuffle) that need a return value, recv will write the messages to the `k` channel.
+// Regular calls will simply produce outbox messages as a side effect
+type message struct {
+	m h.Message
+	k chan []h.Message
+	// fail is message type all by itself, we need to process failures in the recv
+	// thread
+	fail *h.Node
+}
+
+func (c *client) inbox(ms ...h.Message) {
+	for _, m := range ms {
+		c.in <- &message{m: m}
+	}
+}
+
+// inboxAwait returns a channel which blocks until the response is available
+func (c *client) inboxAwait(m h.Message) chan []h.Message {
+	k := make(chan []h.Message)
+	c.in <- &message{m: m, k: k}
+	return k
+}
+
+// recv is the single threaded consumer of hyparview messages
+func (c *client) recv(m *message) {
+	// Dirty hack to process failActive in this thread
+	if m.fail != nil {
+		c.recvFailActive(m.fail)
+		return
+	}
+
+	switch m1 := m.m.(type) {
+	case *h.JoinRequest:
+		v := c.hv.Copy()
+		c.outbox(v.RecvJoin(m1)...)
+		c.hv = v
+	case *h.ForwardJoinRequest:
+		v := c.hv.Copy()
+		c.outbox(v.RecvForwardJoin(m1)...)
+		c.hv = v
+	case *h.DisconnectRequest:
+		v := c.hv.Copy()
+		v.RecvDisconnect(m1)
+		c.hv = v
+	case *h.NeighborRequest:
+		v := c.hv.Copy()
+		m.k <- v.RecvNeighbor(m1)
+		close(m.k)
+	case *h.ShuffleRequest:
+		v := c.hv.Copy()
+		m.k <- v.RecvShuffle(m1)
+		close(m.k)
+	case *h.ShuffleReply:
+		v := c.hv.Copy()
+		v.RecvShuffleReply(m1)
+	default:
+		// log unimplemented?
+	}
+}
+
 func (c *client) failActive(peer *h.Node) {
+	c.in <- &message{
+		fail: peer,
+	}
+}
+
+func (c *client) recvFailActive(peer *h.Node) {
+	v := c.hv.Copy()
+
 	// peer may be nil, which means that the client found our ActiveView empty. In that
 	// case we can't drop anything, but should recover our active view
-	v := c.hv
-
 	if peer != nil {
 		idx := v.Active.ContainsIndex(peer)
-		if idx > -1 {
+		if idx >= 0 {
 			v.Active.DelIndex(idx)
 			c.drop(peer)
 		}
 	}
 
-	passive := v.Passive.Copy()
-	for _, n := range passive.Shuffled() {
+	for _, n := range v.Passive.Shuffled() {
 		pri := h.LowPriority
 		if v.Active.IsEmpty() {
 			pri = h.HighPriority
@@ -223,4 +305,6 @@ func (c *client) failActive(peer *h.Node) {
 		c.outbox(v.AddActive(n)...)
 		break
 	}
+
+	c.hv = v
 }
