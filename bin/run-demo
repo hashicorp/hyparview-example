@@ -10,8 +10,8 @@ set -ae
 
 DOMAIN="test"
 BOOTSTRAP="$boot:10000"
-HTTP_UI="$BOOTSTRAP"
 STAT_UDP="$BOOTSTRAP"
+HTTP_UI="$boot:8080"
 
 LO=0
 HI=199
@@ -20,6 +20,7 @@ for h in `cat terraform/hosts`; do
     PUBLIC="$h:" bin/provision "ec2-user@$h" &
     LO=$(($HI + 1))
     HI=$(($HI + 200))
+    HTTP_UI=""
 done
 wait
 

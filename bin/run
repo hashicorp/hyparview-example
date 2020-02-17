@@ -5,10 +5,13 @@ DOMAIN=test
 PUBLIC="127.0.0.1"
 BOOTSTRAP="127.0.0.1:10000"
 STAT_UDP="127.0.0.1:10000"
+HTTP_UI="127.0.0.1:8080"
 LO=0
-HI=10
+HI=2
 
-for e in DOMAIN BOOTSTRAP PUBLIC STAT_UDP LO HI; do
+required="DOMAIN BOOTSTRAP PUBLIC STAT_UDP"
+
+for e in $required HTTP_UI LO HI; do
     [ -r "env/$e" ] && "$e"=`cat "env/$e"`
 done
 
@@ -16,5 +19,6 @@ mkdir -p data
 
 for i in `seq -f%04g "$LO" "$HI"`; do
     ./bin/run-one $i > data/$i.log 2>&1 &
+    HTTP_UI=""
 done
 wait

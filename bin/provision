@@ -14,7 +14,7 @@ cat <<EOF | ssh -T -o 'StrictHostKeyChecking=accept-new' "$1" 'sh -s'
 mkdir -p hveg hveg/cert hveg/env
 EOF
 
-for e in $required LO HI; do
+for e in $required HTTP_UI LO HI; do
     echo "${!e}" | ssh -T "$1" "cat >hveg/env/$e"
 done
 
