@@ -28,15 +28,15 @@ cert/$(DOMAIN)-agent-ca.pem:
 	mkdir -p cert
 	cd cert && consul tls ca create -domain=$(DOMAIN)
 
-cert/$(DOMAIN)-server-%.pem: cert/$(DOMAIN)-agent-ca.pem
-	cd cert && consul tls cert create -server -domain $(DOMAIN)
-	mv cert/dc1-server-$(DOMAIN)-0.pem $@
-	mv cert/dc1-server-$(DOMAIN)-0-key.pem $(basename $@)-key.pem
+cert/$(DOMAIN)-server-%.pem:
+	cd cert && consul tls cert create -server -domain $(DOMAIN) -dc $*
+	mv cert/$*-server-$(DOMAIN)-0.pem $@
+	mv cert/$*-server-$(DOMAIN)-0-key.pem $(basename $@)-key.pem
 
-cert/$(DOMAIN)-client-%.pem: cert/$(DOMAIN)-agent-ca.pem
-	cd cert && consul tls cert create -client -domain $(DOMAIN)
-	mv cert/dc1-client-$(DOMAIN)-0.pem $@
-	mv cert/dc1-client-$(DOMAIN)-0-key.pem $(basename $@)-key.pem
+cert/$(DOMAIN)-client-%.pem:
+	cd cert && consul tls cert create -client -domain $(DOMAIN) -dc $*
+	mv cert/$*-client-$(DOMAIN)-0.pem $@
+	mv cert/$*-client-$(DOMAIN)-0-key.pem $(basename $@)-key.pem
 
 # ======================================================================
 # Demo
