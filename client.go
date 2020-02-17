@@ -82,20 +82,6 @@ func newClient(c *clientConfig) *client {
 
 // dial connects to a client and caches the connection
 func (c *client) dial(node *h.Node) (*conn, error) {
-	conn, err := c.justDial(node)
-	if err != nil {
-		return nil, err
-	}
-
-	c.connLock.Lock()
-	defer c.connLock.Unlock()
-	c.conn[node.Addr] = conn
-	return conn, nil
-}
-
-// justDial uses a cached conn if available, but does not store the conn in the cache. For
-// shuffle
-func (c *client) justDial(node *h.Node) (*conn, error) {
 	c.connLock.RLock()
 	cn, ok := c.conn[node.Addr]
 	c.connLock.RUnlock()
@@ -103,6 +89,19 @@ func (c *client) justDial(node *h.Node) (*conn, error) {
 		return cn, nil
 	}
 
+	cn, err := c.justDial(node)
+	if err != nil {
+		return nil, err
+	}
+
+	c.connLock.Lock()
+	defer c.connLock.Unlock()
+	c.conn[node.Addr] = cn
+	return cn, nil
+}
+
+// justDial creates a temporary connection. split out for ShuffleReply
+func (c *client) justDial(node *h.Node) (*conn, error) {
 	// Client name must match the dns name of the server
 	creds, err := clientCreds(c.config, "localhost")
 	if err != nil {
@@ -114,7 +113,7 @@ func (c *client) justDial(node *h.Node) (*conn, error) {
 		return nil, err
 	}
 
-	cn = &conn{
+	cn := &conn{
 		c: g,
 		h: proto.NewHyparviewClient(g),
 		g: proto.NewGossipClient(g),
@@ -134,20 +133,18 @@ func (c *client) drop(node *h.Node) {
 }
 
 func (c *client) send(m h.Message) (err error) {
-	// Dial. For ShuffleReply, justDial will create a temporary connection
 	conn, err := c.dial(m.To())
 	if err != nil {
 		return err
 	}
 
-	grpc := conn.h
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	switch v := m.(type) {
 	case *h.JoinRequest:
 		r := &proto.FromRequest{From: c.hv.Self.Addr}
-		_, err = grpc.Join(ctx, r)
+		_, err = conn.h.Join(ctx, r)
 
 	case *h.ForwardJoinRequest:
 		r := &proto.ForwardJoinRequest{
@@ -155,11 +152,11 @@ func (c *client) send(m h.Message) (err error) {
 			Join: v.Join.Addr,
 			From: v.From.Addr,
 		}
-		_, err = grpc.ForwardJoin(ctx, r)
+		_, err = conn.h.ForwardJoin(ctx, r)
 
 	case *h.DisconnectRequest:
 		r := &proto.FromRequest{From: c.hv.Self.Addr}
-		_, err = grpc.Disconnect(ctx, r)
+		_, err = conn.h.Disconnect(ctx, r)
 
 	case *h.ShuffleRequest:
 		r := &proto.ShuffleRequest{
@@ -168,7 +165,24 @@ func (c *client) send(m h.Message) (err error) {
 			Active:  sliceNodeAddr(v.Active),
 			Passive: sliceNodeAddr(v.Passive),
 		}
-		_, err = grpc.Shuffle(ctx, r)
+		_, err = conn.h.Shuffle(ctx, r)
+
+	case *h.ShuffleReply:
+		// Only ShuffleReply is sent to a peer not in our active view via a
+		// temporary conn. If we don't have the conn cached, we'll close it at the
+		// end of this send
+		if conn == nil {
+			conn, err = c.justDial(m.To())
+			if err != nil {
+				return err
+			}
+			defer conn.c.Close()
+		}
+		r := &proto.ShuffleReplyRequest{
+			From:    c.hv.Self.Addr,
+			Passive: sliceNodeAddr(v.Passive),
+		}
+		_, err = conn.h.ShuffleReply(ctx, r)
 	}
 	return err
 }
@@ -194,33 +208,6 @@ func (c *client) sendNeighbor(m *h.NeighborRequest) (*h.NeighborRefuse, error) {
 	}
 
 	return h.SendNeighborRefuse(c.hv.Self, &h.Node{Addr: r.From}), nil
-}
-
-func (c *client) sendShuffleReply(m *h.ShuffleRequest) error {
-	to := m.To()
-	if to == nil {
-		return nil
-	}
-	cn, err := c.justDial(m.To())
-	if err != nil {
-		return fmt.Errorf("dial: %v", err)
-	}
-	grpc := cn.h
-
-	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
-	defer cancel()
-
-	req := &proto.ShuffleReplyRequest{
-		Passive: sliceNodeAddr(m.Passive),
-		From:    m.From.Addr,
-	}
-
-	err := grpc.ShuffleReply(ctx, req)
-	if err != nil {
-		return fmt.Errorf("grpc: %v", err)
-	}
-
-	return nil
 }
 
 func (c *client) outbox(ms ...h.Message) {
