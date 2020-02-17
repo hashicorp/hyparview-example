@@ -69,6 +69,9 @@ func (c *client) wireStat() *wireStat {
 
 func writeAddr(buf *bytes.Buffer, addr string) {
 	ip_port := strings.Split(addr, ":")
+	if len(ip_port) < 2 {
+		return
+	}
 	ip, port := ip_port[0], ip_port[1]
 
 	for _, b := range strings.Split(ip, ".") {
