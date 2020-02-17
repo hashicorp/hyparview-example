@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -19,6 +20,7 @@ const (
 type peerStat struct {
 	Active  []string
 	Passive []string
+	Time    int64
 	From    string
 	App     int32
 	Hops    int32
@@ -83,7 +85,7 @@ func writeAddr(buf *bytes.Buffer, addr string) {
 	binary.Write(buf, binary.LittleEndian, uint16(int))
 }
 
-func parseAddr(bs [ADDR_SIZE]byte) string {
+func parseAddr(bs []byte) string {
 	var ip []string
 	for i := 0; i < 4; i++ {
 		s := strconv.Itoa(int(bs[i]))
@@ -113,16 +115,12 @@ func (p *wireStat) Parse(bs []byte) {
 }
 
 func (p *wireStat) peerStat() *peerStat {
-	var addr [ADDR_SIZE]byte
-	copy(addr[:], p.From[0:6])
-	from := parseAddr(addr)
-
+	from := parseAddr(p.From[:])
 	addrs := func(size int, src []byte) []string {
 		var out []string
 		for j := ADDR_SIZE; j <= size; j += ADDR_SIZE {
 			i := j - ADDR_SIZE
-			copy(addr[:], src[i:j])
-			str := parseAddr(addr)
+			str := parseAddr(src[i:j])
 			if str != "" {
 				out = append(out, str)
 			}
@@ -134,6 +132,7 @@ func (p *wireStat) peerStat() *peerStat {
 		Active:  addrs(ACTIVE_SIZE, p.Active[:]),
 		Passive: addrs(PASSIVE_SIZE, p.Passive[:]),
 		From:    from,
+		Time:    time.Now().Unix(),
 		App:     p.App,
 		Hops:    p.Hops,
 		Waste:   p.Waste,
