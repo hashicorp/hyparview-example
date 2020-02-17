@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"math"
+	"math/rand"
 	"net"
 	"os"
 	"time"
@@ -17,6 +19,10 @@ func main() {
 	boot := os.Getenv("BOOTSTRAP")
 	http := os.Getenv("HTTP_UI")
 	stat := os.Getenv("STAT_UDP")
+
+	seed := h.Rint64Crypto(math.MaxInt64 - 1)
+	rand.Seed(seed)
+
 	c := newClient(&clientConfig{
 		id:         newID(),
 		addr:       addr,
