@@ -14,9 +14,21 @@ import (
 )
 
 type clientConfig struct {
-	sendFanOut     int
+	// sendFanOut count of sending threads
+	sendFanOut int
+	// shuffleSeconds max seconds between shuffle requests
 	shuffleSeconds int
-	statMillis     int
+	hvClientCount  int
+	hvInboxBuffer  int
+	hvOutboxBuffer int
+	gossipMaxHeat  int
+
+	// statParseFanOut count stats deserialization threads
+	statParseFanOut int
+	// statParseBuffer buffer stats messages per parseFanOut process
+	statParseBuffer  int
+	statMillis       int
+	statUpdateBuffer int
 
 	id         string
 	addr       string
@@ -59,16 +71,31 @@ func newID() string {
 func newClient(c *clientConfig) *client {
 	return &client{
 		config:   c,
-		hv:       h.CreateView(&h.Node{ID: c.addr, Addr: c.addr}, 10000),
-		app:      newGossip(4),
+		hv:       h.CreateView(&h.Node{ID: c.addr, Addr: c.addr}, c.hvClientCount),
+		app:      newGossip(c.gossipMaxHeat),
 		conn:     map[string]*conn{},
 		connLock: sync.RWMutex{},
-		in:       make(chan *message, 2048),
-		out:      make(chan h.Message, 2048),
+		in:       make(chan *message, c.hvInboxBuffer),
+		out:      make(chan h.Message, c.hvOutboxBuffer),
 	}
 }
 
+// dial connects to a client and caches the connection
 func (c *client) dial(node *h.Node) (*conn, error) {
+	conn, err := c.justDial(node)
+	if err != nil {
+		return nil, err
+	}
+
+	c.connLock.Lock()
+	defer c.connLock.Unlock()
+	c.conn[node.Addr] = conn
+	return conn, nil
+}
+
+// justDial uses a cached conn if available, but does not store the conn in the cache. For
+// shuffle
+func (c *client) justDial(node *h.Node) (*conn, error) {
 	c.connLock.RLock()
 	cn, ok := c.conn[node.Addr]
 	c.connLock.RUnlock()
@@ -93,9 +120,6 @@ func (c *client) dial(node *h.Node) (*conn, error) {
 		g: proto.NewGossipClient(g),
 	}
 
-	c.connLock.Lock()
-	defer c.connLock.Unlock()
-	c.conn[node.Addr] = cn
 	return cn, nil
 }
 
