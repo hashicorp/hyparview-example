@@ -30,12 +30,19 @@ func main() {
 
 	go runServer(c)
 	if boot != addr {
-		c.send(h.SendJoin(node(boot), c.hv.Self))
+		for {
+			err := c.send(h.SendJoin(node(boot), c.hv.Self))
+			if err == nil {
+				break
+			}
+			time.Sleep(time.Second)
+			log.Printf("debug: bootstrap fail %v, retrying", err)
+		}
 	}
 
-	if http == addr {
+	if http != "" {
 		stats := newStats()
-		go runStatServer(stat, stats)
+		go runStatServer(stat, stats, c)
 		go runUIServer(http, stats)
 	} else {
 		go runStatClient(c, stat)
@@ -47,9 +54,16 @@ func main() {
 func (c *client) lpShuffle() {
 	for {
 		time.Sleep(10 * time.Second)
-		r, err := c.sendShuffle(c.hv.SendShuffle(c.hv.Peer()))
+		peer := c.hv.Peer()
+		if peer == nil {
+			c.failActive(nil)
+			continue
+		}
+
+		req := c.hv.SendShuffle(c.hv.Peer())
+		r, err := c.sendShuffle(req)
 		if err != nil {
-			// log.Printf("error shuffle send: %v\n", err)
+			log.Printf("error: shuffle send: %v\n", err)
 			continue
 		}
 		if r == nil {
