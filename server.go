@@ -39,8 +39,7 @@ func (s *server) View(ctx context.Context, req *proto.StatEmpty) (*proto.ViewRes
 func (s *server) Join(ctx context.Context, req *proto.FromRequest) (*proto.HyparviewEmpty, error) {
 	// log.Printf("info join recv: %s\n", req.From)
 	to, from := s.c.hv.Self, node(req.From)
-	ms := s.c.hv.RecvJoin(h.SendJoin(to, from))
-	s.c.outbox(ms...)
+	s.c.inbox(h.SendJoin(to, from))
 	return &proto.HyparviewEmpty{}, nil
 }
 
@@ -48,21 +47,21 @@ func (s *server) ForwardJoin(ctx context.Context, req *proto.ForwardJoinRequest)
 	to, from := s.c.hv.Self, node(req.From)
 	join := &h.Node{Addr: req.Join}
 	ttl := int(req.Ttl)
-	ms := s.c.hv.RecvForwardJoin(h.SendForwardJoin(to, from, join, ttl))
-	s.c.outbox(ms...)
+	s.c.inbox(h.SendForwardJoin(to, from, join, ttl))
 	return &proto.HyparviewEmpty{}, nil
 }
 
 func (s *server) Disconnect(ctx context.Context, req *proto.FromRequest) (*proto.HyparviewEmpty, error) {
 	to, from := s.c.hv.Self, node(req.From)
-	s.c.hv.RecvDisconnect(h.SendDisconnect(to, from))
+	s.c.inbox(h.SendDisconnect(to, from))
 	return &proto.HyparviewEmpty{}, nil
 }
 
 func (s *server) Neighbor(ctx context.Context, req *proto.NeighborRequest) (*proto.NeighborResponse, error) {
 	to, from := s.c.hv.Self, node(req.From)
 	priority := req.Priority
-	ms := s.c.hv.RecvNeighbor(h.SendNeighbor(to, from, priority))
+	k := s.c.inboxAwait(h.SendNeighbor(to, from, priority))
+	ms := <-k
 	accept := len(ms) == 0
 	return &proto.NeighborResponse{Accept: accept}, nil
 }
@@ -72,7 +71,8 @@ func (s *server) Shuffle(ctx context.Context, req *proto.ShuffleRequest) (*proto
 	active := sliceAddrNode(req.Active)
 	passive := sliceAddrNode(req.Passive)
 	ttl := int(req.Ttl)
-	ms := s.c.hv.RecvShuffle(h.SendShuffle(to, from, active, passive, ttl))
+	k := s.c.inboxAwait(h.SendShuffle(to, from, active, passive, ttl))
+	ms := <-k
 
 	res := &proto.ShuffleReply{
 		From:    s.c.hv.Self.Addr,
