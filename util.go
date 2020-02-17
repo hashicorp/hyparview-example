@@ -6,16 +6,18 @@ func node(addr string) *h.Node {
 	return &h.Node{Addr: addr}
 }
 
-func sliceNodeAddr(ns []*h.Node) (ss []string) {
-	for _, n := range ns {
-		ss = append(ss, n.Addr)
+func sliceNodeAddr(ns []*h.Node) []string {
+	ss := make([]string, len(ns))
+	for i, n := range ns {
+		ss[i] = n.Addr
 	}
 	return ss
 }
 
-func sliceAddrNode(ss []string) (ns []*h.Node) {
-	for _, n := range ss {
-		ns = append(ns, &h.Node{Addr: n})
+func sliceAddrNode(ss []string) []*h.Node {
+	ns := make([]*h.Node, len(ss))
+	for i, n := range ss {
+		ns[i] = &h.Node{Addr: n}
 	}
 	return ns
 }
