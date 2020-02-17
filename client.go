@@ -134,12 +134,13 @@ func (c *client) drop(node *h.Node) {
 }
 
 func (c *client) send(m h.Message) (err error) {
-	cn, err := c.dial(m.To())
+	// Dial. For ShuffleReply, justDial will create a temporary connection
+	conn, err := c.dial(m.To())
 	if err != nil {
 		return err
 	}
-	grpc := cn.h
 
+	grpc := conn.h
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -160,10 +161,14 @@ func (c *client) send(m h.Message) (err error) {
 		r := &proto.FromRequest{From: c.hv.Self.Addr}
 		_, err = grpc.Disconnect(ctx, r)
 
-	case *h.NeighborRequest:
-		// Only in `out` if high priority, safe to ignore the response
-		r := &proto.NeighborRequest{Priority: v.Priority, From: v.From.Addr}
-		_, err = grpc.Neighbor(ctx, r)
+	case *h.ShuffleRequest:
+		r := &proto.ShuffleRequest{
+			Ttl:     int32(v.TTL),
+			From:    c.hv.Self.Addr,
+			Active:  sliceNodeAddr(v.Active),
+			Passive: sliceNodeAddr(v.Passive),
+		}
+		_, err = grpc.Shuffle(ctx, r)
 	}
 	return err
 }
@@ -191,33 +196,31 @@ func (c *client) sendNeighbor(m *h.NeighborRequest) (*h.NeighborRefuse, error) {
 	return h.SendNeighborRefuse(c.hv.Self, &h.Node{Addr: r.From}), nil
 }
 
-func (c *client) sendShuffle(m *h.ShuffleRequest) (res *h.ShuffleReply, err error) {
+func (c *client) sendShuffleReply(m *h.ShuffleRequest) error {
 	to := m.To()
 	if to == nil {
-		return nil, nil
+		return nil
 	}
-	cn, err := c.dial(m.To())
+	cn, err := c.justDial(m.To())
 	if err != nil {
-		return nil, fmt.Errorf("dial: %v", err)
+		return fmt.Errorf("dial: %v", err)
 	}
 	grpc := cn.h
 
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer cancel()
 
-	req := &proto.ShuffleRequest{
-		Ttl:     int32(m.TTL),
-		Active:  sliceNodeAddr(m.Active),
+	req := &proto.ShuffleReplyRequest{
 		Passive: sliceNodeAddr(m.Passive),
 		From:    m.From.Addr,
 	}
 
-	r, err := grpc.Shuffle(ctx, req)
+	err := grpc.ShuffleReply(ctx, req)
 	if err != nil {
-		return nil, fmt.Errorf("grpc: %v", err)
+		return fmt.Errorf("grpc: %v", err)
 	}
 
-	return h.SendShuffleReply(c.hv.Self, &h.Node{Addr: r.From}, sliceAddrNode(r.Passive)), nil
+	return nil
 }
 
 func (c *client) outbox(ms ...h.Message) {
@@ -258,33 +261,27 @@ func (c *client) recv(m *message) {
 		return
 	}
 
+	v := c.hv.Copy()
+
 	switch m1 := m.m.(type) {
-	case *h.JoinRequest:
-		v := c.hv.Copy()
-		c.outbox(v.RecvJoin(m1)...)
-		c.hv = v
-	case *h.ForwardJoinRequest:
-		v := c.hv.Copy()
-		c.outbox(v.RecvForwardJoin(m1)...)
-		c.hv = v
-	case *h.DisconnectRequest:
-		v := c.hv.Copy()
-		v.RecvDisconnect(m1)
-		c.hv = v
 	case *h.NeighborRequest:
-		v := c.hv.Copy()
 		m.k <- v.RecvNeighbor(m1)
 		close(m.k)
+	case *h.JoinRequest:
+		c.outbox(v.RecvJoin(m1)...)
+	case *h.ForwardJoinRequest:
+		c.outbox(v.RecvForwardJoin(m1)...)
+	case *h.DisconnectRequest:
+		v.RecvDisconnect(m1)
 	case *h.ShuffleRequest:
-		v := c.hv.Copy()
-		m.k <- v.RecvShuffle(m1)
-		close(m.k)
+		c.outbox(v.RecvShuffle(m1)...)
 	case *h.ShuffleReply:
-		v := c.hv.Copy()
 		v.RecvShuffleReply(m1)
 	default:
 		// log unimplemented?
 	}
+
+	c.hv = v
 }
 
 func (c *client) failActive(peer *h.Node) {
