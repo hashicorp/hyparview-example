@@ -14,6 +14,10 @@ import (
 )
 
 type clientConfig struct {
+	sendFanOut     int
+	shuffleSeconds int
+	statMillis     int
+
 	id         string
 	addr       string
 	bootstrap  string
@@ -307,4 +311,12 @@ func (c *client) recvFailActive(peer *h.Node) {
 	}
 
 	c.hv = v
+}
+
+func (c *client) statSleep() {
+	time.Sleep(time.Duration(h.Rint(c.config.statMillis)) * time.Millisecond)
+}
+
+func (c *client) shuffleSleep() {
+	time.Sleep(time.Duration(h.Rint(c.config.shuffleSeconds)) * time.Second)
 }
