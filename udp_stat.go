@@ -3,7 +3,10 @@ package main
 import (
 	"log"
 	"net"
+	"strconv"
+	"strings"
 	"sync"
+	"time"
 )
 
 type stats struct {
@@ -56,12 +59,20 @@ func runStatServer(addr string, stats *stats, c *client) {
 	}()
 
 	// Finally, one listener
-	pc, _ := net.ListenPacket("udp", addr)
-	defer pc.Close()
+	as := strings.Split(addr, ":")
+	ip := net.ParseIP(as[0])
+	port, _ := strconv.Atoi(as[1])
+	a := &net.UDPAddr{IP: ip, Port: port}
+	conn, err := net.ListenUDP("udp", a)
+	if err != nil {
+		log.Fatal("error: udp listen %v", err)
+	}
+	conn.SetReadBuffer(c.config.statUDPBuffer)
+	defer conn.Close()
 
+	buf := make([]byte, STAT_SIZE)
 	for {
-		buf := make([]byte, STAT_SIZE)
-		pc.ReadFrom(buf)
+		conn.ReadFromUDP(buf)
 		inbox <- buf
 	}
 }
@@ -71,7 +82,14 @@ func runStatClient(c *client, addr string) {
 	log.Printf("debug: stat client %s", addr)
 
 	// Under the impression that udp dial won't return an error :shrug:
-	conn, _ := net.Dial("udp", addr)
+	conn, err := net.Dial("udp", addr)
+	for {
+		if err == nil {
+			break
+		}
+		time.Sleep(time.Second)
+		conn, err = net.Dial("udp", addr)
+	}
 	defer conn.Close()
 
 	for {
