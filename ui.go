@@ -14,6 +14,7 @@ func (s *stats) handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func runUIServer(addr string, stats *stats) {
+	log.Printf("debug: starting http %s", addr)
 	http.HandleFunc("/stats", stats.handle)
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
