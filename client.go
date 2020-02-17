@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"log"
 	"time"
 
 	h "github.com/hashicorp/hyparview"
@@ -139,6 +140,10 @@ func (c *client) sendNeighbor(m *h.NeighborRequest) (*h.NeighborRefuse, error) {
 		return nil, err
 	}
 
+	if r.Accept {
+		return nil, nil
+	}
+
 	return h.SendNeighborRefuse(c.hv.Self, &h.Node{Addr: r.From}), nil
 }
 
@@ -149,11 +154,11 @@ func (c *client) sendShuffle(m *h.ShuffleRequest) (res *h.ShuffleReply, err erro
 	}
 	cn, err := c.dial(m.To())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("dial: %v", err)
 	}
 	grpc := cn.h
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer cancel()
 
 	req := &proto.ShuffleRequest{
@@ -162,9 +167,10 @@ func (c *client) sendShuffle(m *h.ShuffleRequest) (res *h.ShuffleReply, err erro
 		Passive: sliceNodeAddr(m.Passive),
 		From:    m.From.Addr,
 	}
+
 	r, err := grpc.Shuffle(ctx, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("grpc: %v", err)
 	}
 
 	return h.SendShuffleReply(c.hv.Self, &h.Node{Addr: r.From}, sliceAddrNode(r.Passive)), nil
@@ -188,28 +194,43 @@ func (c *client) failActive(peer *h.Node) {
 	// peer may be nil, which means that the client found our ActiveView empty. In that
 	// case we can't drop anything, but should recover our active view
 	v := c.hv
-	idx := v.Active.ContainsIndex(peer)
-	if idx > -1 {
-		v.Active.DelIndex(idx)
-		c.drop(peer)
+
+	if peer != nil {
+		idx := v.Active.ContainsIndex(peer)
+		if idx > -1 {
+			v.Active.DelIndex(idx)
+			c.drop(peer)
+		}
 	}
 
-	for _, n := range v.Passive.Shuffled() {
+	passive := v.Passive.Copy()
+	for _, n := range passive.Shuffled() {
+		pri := h.LowPriority
 		if v.Active.IsEmpty() {
-			// High priority can't be rejected, so send async
-			m := h.SendNeighbor(n, v.Self, h.HighPriority)
-			c.outbox(m)
+			pri = h.HighPriority
+		}
+
+		// Send sync so we can detect errors
+		m := h.SendNeighbor(n, v.Self, pri)
+		res, err := c.sendNeighbor(m)
+
+		// Either moved to the active view, or failed
+		v.DelPassive(n)
+
+		if err != nil {
+			log.Printf("info: failActive error %s %v", n.Addr, err)
+			continue
+		}
+
+		if res != nil {
+			log.Printf("info: failActive refuse %s", n.Addr)
+			continue
+		}
+
+		// empty low priority response is success, hi priority is always empty
+		if res == nil {
+			c.outbox(v.AddActive(n)...)
 			break
-		} else {
-			m := h.SendNeighbor(n, v.Self, h.LowPriority)
-			res, err := c.sendNeighbor(m)
-			// Either moved to the active view, or failed
-			v.DelPassive(n)
-			// empty low priority response is success
-			if res == nil && err == nil {
-				c.outbox(v.AddActive(n)...)
-				break
-			}
 		}
 	}
 }
