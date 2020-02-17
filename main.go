@@ -32,10 +32,14 @@ func main() {
 		serverKey:  os.Getenv("SERVER_KEY"),
 		clientCert: os.Getenv("CLIENT_CERT"),
 		clientKey:  os.Getenv("CLIENT_KEY"),
+
+		sendFanOut:     10,
+		statMillis:     1500,
+		shuffleSeconds: 30,
 	})
 
 	go runServer(c)
-	go runClient(c)
+	goRunClient(c)
 
 	if boot != addr {
 		for {
@@ -56,12 +60,15 @@ func main() {
 		go runStatClient(c, stat)
 	}
 
-	c.lpShuffle()
+	c.runShuffle()
 }
 
-func (c *client) lpShuffle() {
+// runShuffle blocks, sending a shuffle request to a random peer at some random point in the
+// shuffleSeconds window
+func (c *client) runShuffle() {
 	for {
-		time.Sleep(10 * time.Second)
+		s := time.Duration(h.Rint(c.config.shuffleSeconds))
+		time.Sleep(s * time.Second)
 		peer := c.hv.Peer()
 		if peer == nil {
 			c.failActive(nil)
@@ -82,6 +89,7 @@ func (c *client) lpShuffle() {
 	}
 }
 
+// runServer blocks, starts grpc
 func runServer(c *client) {
 	lis, err := net.Listen("tcp", c.config.addr)
 	if err != nil {
@@ -94,6 +102,8 @@ func runServer(c *client) {
 	}
 	opts := []grpc.ServerOption{grpc.Creds(creds)}
 
+	go runServerUpdater(c)
+
 	grpcServer := grpc.NewServer(opts...)
 	srv := newServer(c)
 	proto.RegisterHyparviewServer(grpcServer, srv)
@@ -101,9 +111,18 @@ func runServer(c *client) {
 	grpcServer.Serve(lis)
 }
 
-func runClient(c *client) {
+// runServerUpdater blocks, apply hv updates
+func runServerUpdater(c *client) {
+	for {
+		m := <-c.in
+		c.recv(m)
+	}
+}
+
+// goRunClient fans hv message sending processes
+func goRunClient(c *client) {
 	// fan out for sending
-	for i := 0; i < 10; i++ {
+	for i := 0; i < c.config.sendFanOut; i++ {
 		go func() {
 			for {
 				m := <-c.out
