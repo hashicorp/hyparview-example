@@ -8,6 +8,6 @@ A sample client for http://github.com/hashicorp/hyparview over TLS
   - Enforces CA signing
   - Only configures CA, own certs
 - [X] `bin/run` Starts a connected cluster
-- [ ] Meaningful status logging
-- [ ] Mechanism to create gossip application messages
+- [X] Meaningful status logging
+- [X] Mechanism to create gossip application messages
 - [ ] go mod to include hyparview
