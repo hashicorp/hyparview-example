@@ -1,11 +1,12 @@
 (function (d3, fetch) {
     // https://observablehq.com/@d3/force-directed-graph
+    // https://medium.com/ninjaconcept/interactive-dynamic-force-directed-graphs-with-d3-da720c6d7811
     function chart(config, data) {
         const width = config.width;
         const height = config.height;
 
-        const links = data.links.map(d => Object.create(d));
-        const nodes = data.nodes.map(d => Object.create(d));
+        var links = data.links.map(d => Object.create(d));
+        var nodes = data.nodes.map(d => Object.create(d));
 
         const simulation = d3.forceSimulation(nodes)
               .force("link", d3.forceLink(links).id(d => d.id))
@@ -57,15 +58,24 @@
         return d => scale(d.group);
     }
 
-    fetch.every = 5000;
-    fetch.then = function (resp) {
-                var svg = chart({
-                        height: 600,
-                        width: 800
-                }, resp);
-        document.getElementById("container").appendChild(svg);
+    var data = {
+        nodes: [],
+        links: []
     };
 
+    var svg = chart({height: 600, width: 800}, data);
+
+    fetch.every = 5000;
+    fetch.then = function (resp) {
+        resp.nodes.forEach(function (n) {
+            data.nodes.push(n);
+        });
+        resp.edges.forEach(function (n) {
+            data.links.push(n);
+        });
+    };
+
+    document.getElementById("container").appendChild(svg);
     fetch.loop();
 
 })(d3, fetch);
