@@ -18,3 +18,5 @@ A sample client for http://github.com/hashicorp/hyparview over TLS
 - [X] Use the private ips (only public, just opened up the ports)
 - [ ] d3 graph updates
 - [ ] node color by app value
+- [X] remove missing links/nodes
+- [ ] gossip on click
