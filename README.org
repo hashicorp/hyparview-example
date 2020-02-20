@@ -11,3 +11,10 @@ A sample client for http://github.com/hashicorp/hyparview over TLS
 - [X] Meaningful status logging
 - [X] Mechanism to create gossip application messages
 - [ ] go mod to include hyparview
+
+* Demo
+
+- [X] Think about threads (just copies)
+- [X] Use the private ips (only public, just opened up the ports)
+- [ ] d3 graph updates
+- [ ] node color by app value

@@ -54,7 +54,7 @@ terraform/hosts: terraform/apply
 	| sed 's/"//g' \
 	> $@
 
-terraform/apply: terraform/demo-key.pub
+terraform/apply: terraform/demo-key.pub terraform/demo.tf
 	cd terraform; terraform apply
 	touch $@
 
