@@ -62,7 +62,7 @@ func (s *server) Neighbor(ctx context.Context, req *proto.NeighborRequest) (*pro
 	priority := req.Priority
 	k := s.c.inboxAwait(h.SendNeighbor(to, from, priority))
 	ms := <-k
-	accept := len(ms) == 0
+	accept := ms == nil
 	return &proto.NeighborResponse{Accept: accept}, nil
 }
 

@@ -221,7 +221,7 @@ func (c *client) outbox(ms ...h.Message) {
 // Regular calls will simply produce outbox messages as a side effect
 type message struct {
 	m h.Message
-	k chan []h.Message
+	k chan h.Message
 	// fail is message type all by itself, we need to process failures in the recv
 	// thread
 	fail *h.Node
@@ -234,8 +234,8 @@ func (c *client) inbox(ms ...h.Message) {
 }
 
 // inboxAwait returns a channel which blocks until the response is available
-func (c *client) inboxAwait(m h.Message) chan []h.Message {
-	k := make(chan []h.Message)
+func (c *client) inboxAwait(m h.Message) chan h.Message {
+	k := make(chan h.Message)
 	c.in <- &message{m: m, k: k}
 	return k
 }
