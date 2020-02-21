@@ -42,7 +42,7 @@ cert/$(DOMAIN)-client-%.pem:
 # Demo
 
 terraform/destroy:
-	(cd terraform; terraform destroy)
+	(cd terraform; terraform destroy -auto-approve)
 	rm terraform/apply
 	rm terraform/hosts
 .PHONEY:terraform/destroy
@@ -55,7 +55,7 @@ terraform/hosts: terraform/apply
 	> $@
 
 terraform/apply: terraform/demo-key.pub terraform/demo.tf
-	cd terraform; terraform apply
+	cd terraform; terraform apply -auto-approve
 	touch $@
 
 terraform/demo-key.pub:
