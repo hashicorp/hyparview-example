@@ -18,6 +18,56 @@ func (s *stats) handle(w http.ResponseWriter, r *http.Request) {
 	w.Write(body)
 }
 
+type d3Node struct {
+	ID    string `json:"id"`
+	App   int32  `json:"app"`
+	Hops  int32  `json:"hops"`
+	Waste int32  `json:"waste"`
+}
+
+type d3Edge struct {
+	Source string `json:"source"`
+	Target string `json:"target"`
+}
+
+type d3 struct {
+	Nodes [string]*d3Node `json:"nodes"`
+	Edges []*d3Edge       `json:"links"`
+}
+
+func (s *stats) handleD3(w http.ResponseWriter, r *http.Request) {
+	data := d3{
+		Nodes: []*d3Node{},
+		Edges: []*d3Edge{},
+	}
+
+	s.lock.RLock()
+	for id, node := range s.safe {
+		data.Nodes = append(data.Nodes, &d3Node{
+			ID:    id,
+			App:   node.App,
+			Hops:  node.Hops,
+			Waste: node.Waste,
+		})
+	}
+	s.lock.RUnlock()
+
+	for _, node := range data.Nodes {
+		for _, e := range s.safe[node.ID].Active {
+			data.Edges = append(data.Edges, &d3Edge{
+				Source: node.ID,
+				Target: e,
+			})
+		}
+	}
+
+	body, _ := json.Marshal(&data)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	w.Write(body)
+}
+
 type sigmaNode struct {
 	ID    string `json:"id"`
 	Color int32  `json:"color"`
@@ -104,6 +154,7 @@ func runUIServer(addr string, stats *stats) {
 	log.Printf("debug: starting http %s", addr)
 	http.HandleFunc("/stats", stats.handle)
 	http.HandleFunc("/sigma", stats.handleSigma)
+	http.HandleFunc("/d3", stats.handleD3)
 	http.HandleFunc("/", handleStatic)
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
