@@ -23,26 +23,69 @@
 
     refreshTask(5000);
 
+    function updateData(data, resp) {
+        var add = {};
+
+        // add nodes
+        for (var k in resp.nodes) {
+            var node = resp.nodes[k],
+                old = data.nodesSet[k];
+
+            if (nodeEq(node, old)) {
+                continue;
+            }
+
+            if (old) {
+                node.x = old.x;
+                node.y = old.y;
+            } else {
+                node.x = randInt(width);
+                node.y = randInt(height);
+            }
+
+            add[k] = node;
+            data.nodes.push(node);
+            data.nodesSet[k] = node;
+        }
+
+        data.nodes.filter(function (n) {
+            // node not in resp, it's actually deleted
+            if (! resp.node[n.id]) {
+                delete data.nodeSet[n.id];
+                return false;
+            }
+            // keep only unchanged or the copy that was in the resp
+            var a = add[n.id];
+            return !a || nodeEq(a, n);
+        });
+
+        for (k in resp.links) {
+            if (data.linkSet[k]) continue;
+            var link = resp.links[k];
+            link.source = data.nodeSet[link.source];
+            link.target = data.nodeSet[link.target];
+            data.links.push(link);
+            data.linkSet[k] = link;
+        }
+
+        data.links.filter(function (l) {
+            var k = linkKey(l);
+            if (! resp.links[k]) {
+                delete data.linkSet[k];
+                return false;
+            }
+            return true;
+        });
+
+        function nodeEq(n, o) {
+            return n && o &&
+                n.id == o.id &&
+                n.app = o.app;
+        }
+    }
+
     function updateGraph(svg, sim, data, resp) {
-        // links point to node objects
-        var key, x, del;
-        var add = setwiseAdds(data.nodeSet, nodeKey, resp.nodes);
-        for (key in add) {
-            x = add[key];
-            x.x = randInt(width);
-            x.y = randInt(height);
-            data.nodes.push(x);
-            data.nodeSet[nodeKey(x)] = x;
-        }
-        setwiseDel(data.nodes, data.nodeSet, nodeKey, add);
-
-        add = setwiseAdds(data.linkSet, linkKey, resp.links);
-        for (key in add) {
-            x = add[key];
-            x.source = data.nodeSet[x.source];
-            x.target = data.nodeSet[x.target];
-        }
-
+        updateData(data, resp);
         const ns = updateNodes(svg, data.nodes);
         const ls = updateLinks(svg, data.links);
         updateSimulation(sim, ns, ls);
