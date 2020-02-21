@@ -31,24 +31,24 @@ type d3Edge struct {
 }
 
 type d3 struct {
-	Nodes [string]*d3Node `json:"nodes"`
-	Edges []*d3Edge       `json:"links"`
+	Nodes map[string]*d3Node `json:"nodes"`
+	Edges []*d3Edge          `json:"links"`
 }
 
 func (s *stats) handleD3(w http.ResponseWriter, r *http.Request) {
 	data := d3{
-		Nodes: []*d3Node{},
+		Nodes: map[string]*d3Node{},
 		Edges: []*d3Edge{},
 	}
 
 	s.lock.RLock()
 	for id, node := range s.safe {
-		data.Nodes = append(data.Nodes, &d3Node{
+		data.Nodes[id] = &d3Node{
 			ID:    id,
 			App:   node.App,
 			Hops:  node.Hops,
 			Waste: node.Waste,
-		})
+		}
 	}
 	s.lock.RUnlock()
 
