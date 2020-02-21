@@ -23,13 +23,13 @@
 
     refreshTask(5000);
 
-    function updateData(data, resp) {
+    function updateData(resp) {
         var add = {};
 
         // add nodes
         for (var k in resp.nodes) {
             var node = resp.nodes[k],
-                old = data.nodesSet[k];
+                old = data.nodeSet[k];
 
             if (nodeEq(node, old)) {
                 continue;
@@ -39,18 +39,18 @@
                 node.x = old.x;
                 node.y = old.y;
             } else {
-                node.x = randInt(width);
-                node.y = randInt(height);
+                node.x = randInt(0, width);
+                node.y = randInt(0, height);
             }
 
             add[k] = node;
             data.nodes.push(node);
-            data.nodesSet[k] = node;
+            data.nodeSet[k] = node;
         }
 
         data.nodes.filter(function (n) {
             // node not in resp, it's actually deleted
-            if (! resp.node[n.id]) {
+            if (! resp.nodes[n.id]) {
                 delete data.nodeSet[n.id];
                 return false;
             }
@@ -80,15 +80,15 @@
         function nodeEq(n, o) {
             return n && o &&
                 n.id == o.id &&
-                n.app = o.app;
+                n.app == o.app;
         }
     }
 
-    function updateGraph(svg, sim, data, resp) {
-        updateData(data, resp);
+    function updateGraph(resp) {
+        updateData(resp);
         const ns = updateNodes(svg, data.nodes);
         const ls = updateLinks(svg, data.links);
-        updateSimulation(sim, ns, ls);
+        updateSimulation(simulation, ns, ls);
     }
 
     function updateSimulation(sim, node, link) {
@@ -140,7 +140,7 @@
 
     function handle(text) {
         var resp = JSON.parse(text);
-        updateGraph(svg, simulation, data, resp);
+        updateGraph(resp);
     }
 
     function refresh() {
