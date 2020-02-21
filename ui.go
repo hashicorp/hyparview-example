@@ -19,20 +19,20 @@ func (s *stats) handle(w http.ResponseWriter, r *http.Request) {
 }
 
 type d3Node struct {
-	ID    string `json:"id"`
-	App   int32  `json:"app"`
-	Hops  int32  `json:"hops"`
-	Waste int32  `json:"waste"`
+	ID  string `json:"id"`
+	App int32  `json:"app"`
+	// Hops  int32  `json:"hops"`
+	// Waste int32  `json:"waste"`
 }
 
 type d3Edge struct {
-	Source string `json:"source"`
-	Target string `json:"target"`
+	S string `json:"source"`
+	T string `json:"target"`
 }
 
 type d3 struct {
 	Nodes map[string]*d3Node `json:"nodes"`
-	Edges []*d3Edge          `json:"links"`
+	Edges map[string]*d3Edge `json:"links"`
 }
 
 func (s *stats) handleD3(w http.ResponseWriter, r *http.Request) {
@@ -44,20 +44,21 @@ func (s *stats) handleD3(w http.ResponseWriter, r *http.Request) {
 	s.lock.RLock()
 	for id, node := range s.safe {
 		data.Nodes[id] = &d3Node{
-			ID:    id,
-			App:   node.App,
-			Hops:  node.Hops,
-			Waste: node.Waste,
+			ID:  id,
+			App: node.App,
+			// Hops:  node.Hops,
+			// Waste: node.Waste,
 		}
 	}
 	s.lock.RUnlock()
 
 	for _, node := range data.Nodes {
 		for _, e := range s.safe[node.ID].Active {
-			data.Edges = append(data.Edges, &d3Edge{
-				Source: node.ID,
-				Target: e,
-			})
+			k := node.ID + 3
+			data.Edges[k] = &d3Edge{
+				S: node.ID,
+				T: e,
+			}
 		}
 	}
 
