@@ -18,8 +18,14 @@ done
 mkdir -p data
 
 for i in `seq -f%04g "$LO" "$HI"`; do
-    bin/run-one $i > data/$i.log 2>&1 &
+    bin/run-one $i \
+		> data/$i.log 2>&1 &
+
+    # Unset so that if set, only the first server will listen to http & stats
     HTTP_UI=""
+
+    # Don't spam the poor bootstrap to death
+    sleep `shuf 0-10 -n1`
 done
 
 trap 'kill $(jobs -p)' EXIT
