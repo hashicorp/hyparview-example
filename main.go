@@ -42,7 +42,7 @@ func main() {
 
 		statParseFanOut:  4,
 		statParseBuffer:  100,
-		statMillis:       1500,
+		statMillis:       5000,
 		statUpdateBuffer: 1024,
 		statUDPBuffer:    1048576,
 	})
