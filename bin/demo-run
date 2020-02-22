@@ -6,13 +6,13 @@ make root terraform
 sleep 5
 set -e
 
-boot=`head -n1 terraform/hosts`
-rest=`tail -n+2 terraform/hosts`
+# private ip
+boot=`head -n1 terraform/hosts|cut -f2`
 
 set -a
 
 BOOTSTRAP="$boot:10000"
-STAT_UDP="$BOOTSTRAP"
+STAT_UDP="$boot:23456"
 HTTP_UI="$boot:8080"
 
 # Provision sets up `boot` :10000 well-known bootstrap server, :8080
@@ -29,8 +29,9 @@ HI=30
 
 mkdir -p log
 
-for h in `cat terraform/public`; do
-    bin/provision "ec2-user@$h" > "log/$h.log" 2>&1 &
+cat terraform/hosts | while read PUBLIC LISTEN; do
+    bin/provision "ec2-user@$PUBLIC" \
+		  # > "log/$h.log" 2>&1 &
     LO=$(($HI + 1))
     HI=$(($HI + $PER))
     HTTP_UI=""

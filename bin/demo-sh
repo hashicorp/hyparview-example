@@ -18,7 +18,7 @@ function demomux () {
 	 select-layout tiled \; \
 	 bind "C-y" set-window-option synchronize-panes \; \
 	 select-pane -T boot -t 0 \; \
-	 send-keys "echo This is the bootstrap server! Toggle synchronize-panes with C-b C-y" \; \
+	 send-keys "echo Toggle synchronize-panes with C-b C-y" \; \
 	 set-window-option synchronize-panes
 }
 
