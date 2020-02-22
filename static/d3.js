@@ -3,15 +3,17 @@
     // https://medium.com/ninjaconcept/interactive-dynamic-force-directed-graphs-with-d3-da720c6d7811
     // https://github.com/ninjaconcept/d3-force-directed-graph/blob/master/example/4-dynamic-updates.html
 
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    const width = window.innerWidth - 20;
+    const height = window.innerHeight - 20;
 
     const svg = d3.select('svg');
     svg.attr('width', width).attr('height', height);
 
     const simulation = d3.forceSimulation()
           .force("link", d3.forceLink().id(linkKey))
-          .force('charge', d3.forceManyBody().strength(-20))
+          .force('charge', d3.forceManyBody())
+          .force('x', d3.forceX())
+          .force('y', d3.forceY())
           .force('center', d3.forceCenter(width / 2, height / 2));
 
     var data = {
@@ -21,6 +23,7 @@
         linkSet: {},
     };
 
+    refresh();
     refreshTask(5000);
 
     function updateData(resp) {
@@ -64,6 +67,7 @@
             var link = resp.links[k];
             link.source = data.nodeSet[link.source];
             link.target = data.nodeSet[link.target];
+            link.value = 2;
             data.links.push(link);
             data.linkSet[k] = link;
         }
@@ -92,7 +96,7 @@
     }
 
     function updateSimulation(sim, node, link) {
-        simulation.on("tick", () => {
+        sim.on("tick", () => {
             link
                 .attr("x1", d => d.source.x)
                 .attr("y1", d => d.source.y)
@@ -107,14 +111,16 @@
     }
 
     function updateNodes(svg, nodes) {
-        let ns = svg.selectAll("circle").data(nodes, nodeKey);
+        let ns = svg.selectAll("circle")
+            .data(nodes, nodeKey)
+            .join("circle");
         ns.exit().remove();
 
         const enter = ns.enter()
               .append("circle")
               .attr("stroke", "#fff")
               .attr("stroke-width", 1.5)
-              .attr("r", 5)
+              .attr("r", 6)
               .attr("fill", "#000");
         return ns;
     }
@@ -127,6 +133,7 @@
               .append("line")
               .attr("stroke", "#999")
               .attr("stroke-opacity", 0.6);
+
         ls = enter.merge(ls);
         return ls;
     }
