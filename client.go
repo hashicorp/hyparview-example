@@ -157,6 +157,7 @@ func (c *client) send(m h.Message) (err error) {
 	case *h.DisconnectRequest:
 		r := &proto.FromRequest{From: c.hv.Self.Addr}
 		_, err = conn.h.Disconnect(ctx, r)
+		c.drop(v.To())
 
 	case *h.ShuffleRequest:
 		r := &proto.ShuffleRequest{
@@ -262,6 +263,7 @@ func (c *client) recv(m *message) {
 		c.outbox(v.RecvForwardJoin(m1)...)
 	case *h.DisconnectRequest:
 		v.RecvDisconnect(m1)
+		c.drop(m1.From)
 	case *h.ShuffleRequest:
 		c.outbox(v.RecvShuffle(m1)...)
 	case *h.ShuffleReply:
