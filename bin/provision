@@ -26,6 +26,7 @@ go get google.golang.org/grpc
 go get google.golang.org/grpc/credentials
 
 mkdir -p go/src/github.com/hashicorp
+ln -sfn go/src/github.com/hashicorp/hyparview-example h
 cd go/src/github.com/hashicorp
 
 ssh-keyscan github.com >> ~/.ssh/known_hosts
