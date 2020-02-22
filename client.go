@@ -252,7 +252,9 @@ func (c *client) recv(m *message) {
 
 	switch m1 := m.m.(type) {
 	case *h.NeighborRequest:
-		m.k <- v.RecvNeighbor(m1)
+		for _, msg := range v.RecvNeighbor(m1) {
+			m.k <- msg
+		}
 		close(m.k)
 	case *h.JoinRequest:
 		c.outbox(v.RecvJoin(m1)...)
@@ -301,7 +303,7 @@ func (c *client) recvFailActive(peer *h.Node) {
 		res, err := c.sendNeighbor(m)
 
 		// If refused, keep going, and keep this server in the list
-		if res != nil {
+		if pri == h.LowPriority && res != nil {
 			log.Printf("info: failActive refuse %s", n.Addr)
 			continue
 		}
