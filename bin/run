@@ -2,14 +2,14 @@
 set -ea
 
 DOMAIN=test
-PUBLIC="127.0.0.1"
+LISTEN="127.0.0.1"
 BOOTSTRAP="127.0.0.1:10000"
 STAT_UDP="127.0.0.1:10000"
 HTTP_UI="127.0.0.1:8080"
 LO=0
 HI=5
 
-required="DOMAIN BOOTSTRAP PUBLIC STAT_UDP"
+required="DOMAIN BOOTSTRAP LISTEN STAT_UDP"
 
 for e in $required HTTP_UI LO HI; do
     [ -r "env/$e" ] && eval "$e=`cat "env/$e"`"

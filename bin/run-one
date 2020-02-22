@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-required="DOMAIN BOOTSTRAP PUBLIC"
+required="DOMAIN BOOTSTRAP LISTEN"
 
 for e in $required; do
     [ -z "${!e}" ] && {
@@ -12,7 +12,7 @@ done
 
 set -ax
 
-ADDR="$PUBLIC:1$1"
+ADDR="$LISTEN:1$1"
 CA_CERT="cert/$DOMAIN-agent-ca.pem"
 SERVER_CERT="cert/$DOMAIN-server-$1.pem"
 SERVER_KEY="cert/$DOMAIN-server-$1-key.pem"

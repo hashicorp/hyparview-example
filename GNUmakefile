@@ -41,6 +41,9 @@ cert/$(DOMAIN)-client-%.pem:
 # ======================================================================
 # Demo
 
+terraform: terraform/apply terraform/hosts terraform/public
+.PHONEY: terraform
+
 terraform/destroy:
 	(cd terraform; terraform destroy -auto-approve)
 	rm terraform/apply
@@ -48,6 +51,13 @@ terraform/destroy:
 .PHONEY:terraform/destroy
 
 terraform/hosts: terraform/apply
+	(cd terraform; terraform show -json) \
+	| jq -M '.values.root_module.resources[].values.private_ip' \
+	| grep -v null \
+	| sed 's/"//g' \
+	> $@
+
+terraform/public: terraform/apply
 	(cd terraform; terraform show -json) \
 	| jq -M '.values.root_module.resources[].values.public_ip' \
 	| grep -v null \

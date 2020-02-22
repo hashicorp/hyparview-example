@@ -1,10 +1,12 @@
 #!/bin/sh
+make terraform/public
+hosts=terraform/public
 
-boot="ec2-user@`head -1 terraform/hosts`"
-two="ec2-user@`head -2 terraform/hosts|tail -1`"
-three="ec2-user@`head -3 terraform/hosts|tail -1`"
-four="ec2-user@`head -4 terraform/hosts|tail -1`"
-five="ec2-user@`head -5 terraform/hosts|tail -1`"
+boot="ec2-user@`head -1 $hosts`"
+two="ec2-user@`head -2 $hosts|tail -1`"
+three="ec2-user@`head -3 $hosts|tail -1`"
+four="ec2-user@`head -4 $hosts|tail -1`"
+five="ec2-user@`head -5 $hosts|tail -1`"
 
 function demomux () {
     tmux new-session \
