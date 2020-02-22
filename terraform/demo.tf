@@ -39,22 +39,22 @@ resource "aws_security_group" "hyparview-demo-sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # # these rules should be limited to our vpc
-  # # our GRPC ports
-  # ingress {
-  #   from_port   = 10000
-  #   to_port     = 20000
-  #   protocol    = "tcp"
-  #   cidr_blocks = ["0.0.0.0/0"]
-  # }
+  # these rules should be limited to our vpc
+  # our GRPC ports
+  ingress {
+    from_port   = 10000
+    to_port     = 20000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-  # # stats
-  # ingress {
-  #   from_port   = 23456
-  #   to_port     = 23456
-  #   protocol    = "udp"
-  #   cidr_blocks = ["0.0.0.0/0"]
-  # }
+  # stats
+  ingress {
+    from_port   = 23456
+    to_port     = 23456
+    protocol    = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   egress {
     from_port   = 0
