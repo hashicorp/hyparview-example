@@ -6,14 +6,14 @@ make root terraform
 sleep 5
 set -e
 
-# private ip
-boot=`head -n1 terraform/hosts|cut -f2`
+public=`head -n1 terraform/hosts|cut -f1`
+private=`head -n1 terraform/hosts|cut -f2`
 
 set -a
 
-BOOTSTRAP="$boot:10000"
-STAT_UDP="$boot:23456"
-HTTP_UI="$boot:8080"
+BOOTSTRAP="$private:10000"
+STAT_UDP="$private:23456"
+HTTP_UI="$private:8080"
 
 # Provision sets up `boot` :10000 well-known bootstrap server, :8080
 # as the http endpoint for the deom visualization, and :23456 as the
@@ -27,11 +27,8 @@ PER=250
 LO=0
 HI=30
 
-mkdir -p log
-
 cat terraform/hosts | while read PUBLIC LISTEN; do
-    bin/provision "ec2-user@$PUBLIC" \
-		  # > "log/$h.log" 2>&1 &
+    bin/provision "ec2-user@$PUBLIC"
     LO=$(($HI + 1))
     HI=$(($HI + $PER))
     HTTP_UI=""
