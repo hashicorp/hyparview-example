@@ -11,18 +11,38 @@ for e in $required; do
 done
 
 cat <<EOF | ssh -T -o 'StrictHostKeyChecking=accept-new' "$1" 'sh -s'
-mkdir -p hveg hveg/cert hveg/env
-
-[ -x /usr/local/bin/consul ] && exit 0
+if [ ! -x /usr/local/bin/consul ]; then
 wget -q https://releases.hashicorp.com/consul/1.7.0/consul_1.7.0_linux_amd64.zip
 unzip consul_1.7.0_linux_amd64.zip
 sudo mv consul /usr/local/bin
+fi
+
+sudo yum -y install go
+sudo yum -y install git
+
+go get github.com/golang/protobuf/protoc-gen-go
+go get golang.org/x/net/context
+go get google.golang.org/grpc
+go get google.golang.org/grpc/credentials
+
+mkdir -p go/src/github.com/hashicorp
+cd go/src/github.com/hashicorp
+
+ssh-keyscan github.com >> ~/.ssh/known_hosts
+git clone git@github.com:hashicorp/hyparview
+git clone git@github.com:hashicorp/hyparview-example
+cd hyparview-example
+make
+
+mkdir -p cert env
 EOF
 
+set -x
+
+path=go/src/github.com/hashicorp/hyparview-example
+
 for e in $required HTTP_UI LO HI; do
-    echo "${!e}" | ssh -T "$1" "cat >hveg/env/$e"
+    echo "${!e}" | ssh -T "$1" "cat >$path/env/$e"
 done
 
-rsync -pr bin/ "$1:hveg/bin/"
-rsync -p GNUmakefile "$1:hveg"
-rsync -p "cert/$DOMAIN-agent-ca.pem" "$1:hveg/cert"
+rsync -p cert/test-agent-ca-key.pem cert/test-agent-ca.pem "$1:$path/cert"
