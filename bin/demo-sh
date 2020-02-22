@@ -1,12 +1,14 @@
 #!/bin/sh
-make terraform/public
-hosts=terraform/public
+make terraform/hosts
+hosts=terraform/hosts
 
-boot="ec2-user@`head -1 $hosts`"
-two="ec2-user@`head -2 $hosts|tail -1`"
-three="ec2-user@`head -3 $hosts|tail -1`"
-four="ec2-user@`head -4 $hosts|tail -1`"
-five="ec2-user@`head -5 $hosts|tail -1`"
+bootstrap=`head -1 terraform/hosts|cut -f1`
+
+one="ec2-user@$bootstrap"
+two="ec2-user@`head -2 $hosts|tail -1|cut -f1`"
+three="ec2-user@`head -3 $hosts|tail -1|cut -f1`"
+four="ec2-user@`head -4 $hosts|tail -1|cut -f1`"
+five="ec2-user@`head -5 $hosts|tail -1|cut -f1`"
 
 function demomux () {
     tmux new-session \
@@ -22,5 +24,11 @@ function demomux () {
 	 set-window-option synchronize-panes
 }
 
-echo 'ssh $boot, $two, $three, $four, $five'
+function curlstats () {
+    curl "$@" "http://$bootstrap:8080/stats"
+}
+
+echo 'ssh $one, $two, $three, $four, $five'
 echo 'demomux: create a new tmux session open to all five servers'
+echo 'curlstats -vv | jq .: fetch raw stats'
+echo "http://$bootstrap:8080/d3.html"
