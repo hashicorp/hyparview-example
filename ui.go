@@ -38,7 +38,7 @@ type d3 struct {
 func (s *stats) handleD3(w http.ResponseWriter, r *http.Request) {
 	data := d3{
 		Nodes: map[string]*d3Node{},
-		Edges: []*d3Edge{},
+		Edges: map[string]*d3Edge{},
 	}
 
 	s.lock.RLock()
@@ -50,17 +50,20 @@ func (s *stats) handleD3(w http.ResponseWriter, r *http.Request) {
 			// Waste: node.Waste,
 		}
 	}
-	s.lock.RUnlock()
 
 	for _, node := range data.Nodes {
 		for _, e := range s.safe[node.ID].Active {
-			k := node.ID + 3
+			if e == "" {
+				continue
+			}
+			k := node.ID + e
 			data.Edges[k] = &d3Edge{
 				S: node.ID,
 				T: e,
 			}
 		}
 	}
+	s.lock.RUnlock()
 
 	body, _ := json.Marshal(&data)
 
