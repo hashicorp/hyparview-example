@@ -50,12 +50,8 @@ terraform/destroy:
 	rm terraform/hosts
 .PHONEY:terraform/destroy
 
-terraform/hosts: terraform/apply
-	(cd terraform; terraform show -json) \
-	| jq -M '.values.root_module.resources[].values.private_ip' \
-	| grep -v null \
-	| sed 's/"//g' \
-	> $@
+terraform/hosts: terraform/public
+	bin/build-hosts $^ > $@
 
 terraform/public: terraform/apply
 	(cd terraform; terraform show -json) \

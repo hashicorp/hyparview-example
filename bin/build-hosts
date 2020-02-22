@@ -1,0 +1,7 @@
+#!/bin/bash
+for h in `cat "$1"`; do
+    echo -n "$h	"
+    cat <<EOF | ssh -T -o 'StrictHostKeyChecking=accept-new' "ec2-user@$h" 'sh -s'
+/usr/sbin/ifconfig|grep 'inet '|grep -v 127.0.0.1|awk '{print \$2}'
+EOF
+done
