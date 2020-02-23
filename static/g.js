@@ -8,9 +8,15 @@ const elem = document.getElementById("graph");
 const Graph = ForceGraph()(elem)
       .onNodeHover(node => elem.style.cursor = node ? 'pointer' : null)
       .nodeAutoColorBy('app')
+      .d3AlphaDecay(0)
+      .d3VelocityDecay(0.08)
+      .cooldownTime(60000)
+      .linkColor(() => 'rgba(0,0,0,0.05)')
+      .zoom(0.05)
+      .enablePointerInteraction(false)
       .graphData(initData);
 
-setInterval(refresh, 1000);
+setInterval(refresh, 3000);
 
 function refresh() {
     var xhr = new XMLHttpRequest();
