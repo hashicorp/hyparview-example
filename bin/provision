@@ -48,6 +48,7 @@ rsync -p cert/test-agent-ca-key.pem cert/test-agent-ca.pem "$1:$path/cert"
 
 rsync -p bin/limits.conf "$1:"
 cat <<EOF | ssh -T "$1" 'sh -s'
+sudo sysctl -w fs.file-max=39040000
 chmod 644 limits.conf
 sudo chown root:root limits.conf
 sudo mv limits.conf /etc/security/limits.d/10-nproc.conf

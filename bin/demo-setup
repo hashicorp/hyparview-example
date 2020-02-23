@@ -23,16 +23,19 @@ HTTP_UI="$private:8080"
 # server & client certificates for each node) and with the run script,
 # which is kicked off on each box as the supervisor
 
-PER=250
+PER=1000
 LO=0
-HI=30
+HI=1000
 
 cat terraform/hosts | while read PUBLIC LISTEN; do
-    bin/provision "ec2-user@$PUBLIC"
+    bin/provision "ec2-user@$PUBLIC" &
     LO=$(($HI + 1))
     HI=$(($HI + $PER))
     HTTP_UI=""
 done
+
+# the while executed in a subshell, but for splits on all whitespace
+# so :shrug: There doesn't seem to be a way to wait for the processes
 wait
 
 echo 'Shell helpers:'
