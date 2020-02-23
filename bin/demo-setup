@@ -24,7 +24,7 @@ HTTP_UI="$private:8080"
 
 PER=700
 LO=0
-HI=1000
+HI=700
 
 cat terraform/hosts | while read PUBLIC LISTEN; do
     bin/provision "ec2-user@$PUBLIC" &
