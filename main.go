@@ -64,7 +64,7 @@ func main() {
 	if http != "" {
 		stats := newStats()
 		go runStatServer(stat, stats, c)
-		go runUIServer(http, stats)
+		go runUIServer(http, c, stats)
 	} else {
 		go runStatClient(c, stat)
 	}

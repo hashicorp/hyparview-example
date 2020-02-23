@@ -23,6 +23,9 @@ func newGossip(maxHeat int) *gossip {
 	}
 }
 
+func (c *client) gossipGo(peer *h.Node) {
+}
+
 func (c *client) gossipSend(payload int) {
 	for c.app.Hot > 0 {
 		if h.Rint(c.app.MaxHeat) > c.app.Hot {

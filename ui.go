@@ -73,12 +73,11 @@ func (s *stats) handleD3(w http.ResponseWriter, r *http.Request) {
 }
 
 type sigmaNode struct {
-	ID    string `json:"id"`
-	Color int32  `json:"color"`
+	ID  string `json:"id"`
+	App int32  `json:"app"`
 }
 
 type sigmaEdge struct {
-	ID     string `json:"id"`
 	Source string `json:"source"`
 	Target string `json:"target"`
 }
@@ -97,8 +96,8 @@ func (s *stats) handleSigma(w http.ResponseWriter, r *http.Request) {
 	s.lock.RLock()
 	for id, node := range s.safe {
 		data.Nodes = append(data.Nodes, &sigmaNode{
-			ID:    id,
-			Color: node.App % 8,
+			ID:  id,
+			App: node.App % 8,
 		})
 	}
 	s.lock.RUnlock()
@@ -106,7 +105,6 @@ func (s *stats) handleSigma(w http.ResponseWriter, r *http.Request) {
 	for _, node := range data.Nodes {
 		for _, e := range s.safe[node.ID].Active {
 			data.Edges = append(data.Edges, &sigmaEdge{
-				ID:     node.ID + e,
 				Source: node.ID,
 				Target: e,
 			})
@@ -154,11 +152,18 @@ func handleStatic(w http.ResponseWriter, r *http.Request) {
 	w.Write(body)
 }
 
-func runUIServer(addr string, stats *stats) {
+func (c *client) handleGossip(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		w.WriteHeader(405)
+	}
+}
+
+func runUIServer(addr string, c *client, stats *stats) {
 	log.Printf("debug: starting http %s", addr)
 	http.HandleFunc("/stats", stats.handle)
 	http.HandleFunc("/sigma", stats.handleSigma)
 	http.HandleFunc("/d3", stats.handleD3)
+	http.HandleFunc("/gossip", c.handleGossip)
 	http.HandleFunc("/", handleStatic)
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
