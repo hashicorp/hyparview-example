@@ -3,7 +3,6 @@ export DOMAIN="test"
 
 make root terraform
 # sshd starting
-sleep 5
 set -e
 
 public=`head -n1 terraform/hosts|cut -f1`
@@ -23,7 +22,7 @@ HTTP_UI="$private:8080"
 # server & client certificates for each node) and with the run script,
 # which is kicked off on each box as the supervisor
 
-PER=1000
+PER=700
 LO=0
 HI=1000
 

@@ -51,7 +51,8 @@ terraform/destroy:
 .PHONEY:terraform/destroy
 
 terraform/hosts: terraform/public
-	bin/build-hosts $^ > $@
+	bin/build-hosts $^ > $@.tmp
+	mv $@.tmp $@
 
 terraform/public: terraform/apply
 	(cd terraform; terraform show -json) \
