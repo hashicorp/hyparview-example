@@ -52,7 +52,8 @@ func main() {
 
 	if boot != addr {
 		for {
-			err := c.send(h.SendJoin(node(boot), c.hv.Self))
+			ms := c.hv.SendJoin(node(boot))
+			err := c.send(ms[0])
 			if err == nil {
 				break
 			}
