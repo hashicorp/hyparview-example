@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -275,6 +274,15 @@ func (c *client) recv(m *message) {
 	c.hv = v
 }
 
+// getPeer returns a peer if possible, and maintains the active view
+func (c *client) getPeer() *h.Node {
+	// Add to the active view so we're always mostly full, but one message at a time
+	if !c.hv.Active.IsFull() {
+		c.failActive(nil)
+	}
+	return c.hv.Peer()
+}
+
 func (c *client) failActive(peer *h.Node) {
 	c.in <- &message{
 		fail: peer,
@@ -306,7 +314,7 @@ func (c *client) recvFailActive(peer *h.Node) {
 
 		// If refused, keep going, and keep this server in the list
 		if pri == h.LowPriority && res != nil {
-			log.Printf("info: failActive refuse %s", n.Addr)
+			// log.Printf("info: failActive refuse %s", n.Addr)
 			continue
 		}
 
@@ -314,7 +322,7 @@ func (c *client) recvFailActive(peer *h.Node) {
 		v.DelPassive(n)
 
 		if err != nil {
-			log.Printf("info: failActive error %s %v", n.Addr, err)
+			// log.Printf("info: failActive error %s %v", n.Addr, err)
 			continue
 		}
 
