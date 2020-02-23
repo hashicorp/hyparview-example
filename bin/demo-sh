@@ -12,7 +12,7 @@ five="ec2-user@`head -5 $hosts|tail -1|cut -f1`"
 
 function demomux () {
     tmux new-session \
-	 "ssh $boot" \; \
+	 "ssh $one" \; \
 	 split-window "ssh $two" \; \
 	 split-window "ssh $three" \; \
 	 split-window "ssh $four" \; \
