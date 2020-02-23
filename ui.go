@@ -19,10 +19,10 @@ func (s *stats) handle(w http.ResponseWriter, r *http.Request) {
 }
 
 type d3Node struct {
-	ID  string `json:"id"`
-	App int32  `json:"app"`
-	// Hops  int32  `json:"hops"`
-	// Waste int32  `json:"waste"`
+	ID    string `json:"id"`
+	App   int32  `json:"app"`
+	Hops  int32  `json:"hops"`
+	Waste int32  `json:"waste"`
 }
 
 type d3Edge struct {
@@ -44,10 +44,10 @@ func (s *stats) handleD3(w http.ResponseWriter, r *http.Request) {
 	s.lock.RLock()
 	for id, node := range s.safe {
 		data.Nodes[id] = &d3Node{
-			ID:  id,
-			App: node.App,
-			// Hops:  node.Hops,
-			// Waste: node.Waste,
+			ID:    id,
+			App:   node.App,
+			Hops:  node.Hops,
+			Waste: node.Waste,
 		}
 	}
 
