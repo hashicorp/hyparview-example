@@ -55,13 +55,17 @@ function mergeData(data, resp) {
     const links = data.links.map(l => {
         const id = l.source + l.target;
         if (! resp.links[id]) return null; // missing
+        if (! node_ids[l.source] && node_ids[l.target]) return null; // missing node
         link_ids[id] = true;
         return l;               // updates don't matter
     }).filter(l => { return l; });
 
+    var l;
     for (k in resp.links) {
         if (link_ids[k]) continue;
-        links.push(resp.links[k]);
+        l = resp.links[k];
+        if (! node_ids[l.source] && node_ids[l.target]) continue;
+        links.push(l);
     }
 
     function nodeEq(n, o) {
