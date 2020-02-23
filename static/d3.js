@@ -67,6 +67,12 @@
             var link = resp.links[k];
             link.source = data.nodeSet[link.source];
             link.target = data.nodeSet[link.target];
+
+            // broken links are actually interesting, but where do they point?
+            if ( !(link.source && link.target) ) {
+                continue;
+            }
+
             link.value = 2;
             data.links.push(link);
             data.linkSet[k] = link;
