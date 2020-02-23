@@ -29,9 +29,8 @@ func (c *client) gossipSend(payload int) {
 			continue
 		}
 
-		peer := c.hv.Peer()
+		peer := c.getPeer()
 		if peer == nil {
-			c.failActive(nil) // ignore errors
 			continue
 		}
 

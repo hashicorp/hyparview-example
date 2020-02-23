@@ -78,16 +78,14 @@ func (c *client) runShuffle() {
 	for {
 		s := time.Duration(h.Rint(c.config.shuffleSeconds))
 		time.Sleep(s * time.Second)
-		peer := c.hv.Peer()
+		peer := c.getPeer()
 		if peer == nil {
-			c.failActive(nil)
 			continue
 		}
 
-		req := c.hv.SendShuffle(c.hv.Peer())
-		err := c.send(req)
+		err := c.send(c.hv.SendShuffle(peer))
 		if err != nil {
-			log.Printf("error: shuffle send: %v\n", err)
+			c.failActive(peer)
 			continue
 		}
 	}
