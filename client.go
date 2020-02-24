@@ -145,6 +145,13 @@ func (c *client) send(m h.Message) (err error) {
 		r := &proto.FromRequest{From: c.hv.Self.Addr}
 		_, err = conn.h.Join(ctx, r)
 
+	case *h.NeighborRequest:
+		r := &proto.NeighborRequest{
+			Priority: v.Priority,
+			From:     c.hv.Self.Addr,
+		}
+		_, err = conn.h.Neighbor(ctx, r)
+
 	case *h.ForwardJoinRequest:
 		r := &proto.ForwardJoinRequest{
 			Ttl:  int32(v.TTL),
