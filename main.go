@@ -33,7 +33,7 @@ func main() {
 		clientCert: os.Getenv("CLIENT_CERT"),
 		clientKey:  os.Getenv("CLIENT_KEY"),
 
-		sendFanOut:     20,
+		sendFanOut:     6,
 		shuffleSeconds: 30,
 		hvClientCount:  1000,
 		hvInboxBuffer:  1024,
