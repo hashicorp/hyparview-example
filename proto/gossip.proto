@@ -3,14 +3,14 @@ package hashicorp.hyparview.example.gossip;
 option go_package = "proto";
 
 service Gossip {
-  rpc Gossip (GossipRequest) returns (GossipResponse) {}
+  rpc Gossip (GossipRequest) returns (GossipEmpty) {}
 }
 
 message GossipRequest {
   int32 payload = 1;
   int32 hops = 2;
+  string from = 3;
 }
 
-message GossipResponse {
-  bool hot = 1;
+message GossipEmpty {
 }
