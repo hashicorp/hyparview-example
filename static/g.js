@@ -1,9 +1,18 @@
+document.body.addEventListener("keydown", ev => {
+    if (ev.key != "g") return true;
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "gossip");
+    xhr.send();
+    return false;
+});
+
 const initData = {
     nodes: [ {id: 0 } ],
     links: []
 };
 
 const elem = document.getElementById("graph");
+
 
 const Graph = ForceGraph()(elem)
       .onNodeHover(node => elem.style.cursor = node ? 'pointer' : null)
@@ -12,7 +21,7 @@ const Graph = ForceGraph()(elem)
       .d3VelocityDecay(0.08)
       .cooldownTime(60000)
       .linkColor(() => 'rgba(0,0,0,0.05)')
-      .zoom(0.05)
+      .zoom(0.7)
       .enablePointerInteraction(false)
       .graphData(initData);
 
@@ -42,13 +51,14 @@ function mergeData(data, resp) {
         if (! resp.nodes[n.id]) return null; // missing
         node_ids[n.id] = true;               // mark the id
         // if (! nodeEq(n, resp.nodes[n.id])) return resp.nodes[n.id];
-        n.app = resp.nodes[n.id].app;
+        n.app = resp.nodes[n.id].app % 8;
         return n; // keep old obj
     })
         .filter(n => { return n; });
 
     for (var k in resp.nodes) {
         if (node_ids[k]) continue;
+        node_ids[k] = true;
         nodes.push(resp.nodes[k]);
     }
 
