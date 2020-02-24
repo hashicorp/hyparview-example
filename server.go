@@ -33,7 +33,9 @@ func (s *server) View(ctx context.Context, req *proto.StatEmpty) (*proto.ViewRes
 }
 
 func (s *server) Join(ctx context.Context, req *proto.FromRequest) (*proto.HyparviewEmpty, error) {
-	// log.Printf("info join recv: %s\n", req.From)
+	// if s.c.config.bootstrap == s.c.config.addr && len(s.c.stats) > 0 {
+	// 	s.c.send
+	// }
 	to, from := s.c.hv.Self, node(req.From)
 	s.c.inbox(h.SendJoin(to, from))
 	return &proto.HyparviewEmpty{}, nil
@@ -41,7 +43,7 @@ func (s *server) Join(ctx context.Context, req *proto.FromRequest) (*proto.Hypar
 
 func (s *server) ForwardJoin(ctx context.Context, req *proto.ForwardJoinRequest) (*proto.HyparviewEmpty, error) {
 	to, from := s.c.hv.Self, node(req.From)
-	join := &h.Node{Addr: req.Join}
+	join := node(req.Join)
 	ttl := int(req.Ttl)
 	s.c.inbox(h.SendForwardJoin(to, from, join, ttl))
 	return &proto.HyparviewEmpty{}, nil

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	h "github.com/hashicorp/hyparview"
 	"github.com/stretchr/testify/require"
 )
 
@@ -41,10 +40,10 @@ func TestStatBinary(t *testing.T) {
 		bootstrap: "127.0.0.1:4000",
 	})
 	for i := 1; i <= 5; i++ {
-		c.hv.AddActive(&h.Node{Addr: fmt.Sprintf("127.0.0.1:40%02d", i)})
+		c.hv.AddActive(node(fmt.Sprintf("127.0.0.1:40%02d", i)))
 	}
 	for i := 6; i <= 36; i++ {
-		c.hv.AddPassive(&h.Node{Addr: fmt.Sprintf("127.0.0.1:40%02d", i)})
+		c.hv.AddPassive(node(fmt.Sprintf("127.0.0.1:40%02d", i)))
 	}
 
 	// Bidirectional encoding

@@ -17,7 +17,7 @@ func sliceNodeAddr(ns []*h.Node) []string {
 func sliceAddrNode(ss []string) []*h.Node {
 	ns := make([]*h.Node, len(ss))
 	for i, n := range ss {
-		ns[i] = &h.Node{Addr: n}
+		ns[i] = node(n)
 	}
 	return ns
 }

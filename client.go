@@ -71,7 +71,7 @@ func newID() string {
 func newClient(c *clientConfig) *client {
 	return &client{
 		config: c,
-		hv:     h.CreateView(&h.Node{ID: c.addr, Addr: c.addr}, c.hvClientCount),
+		hv:     h.CreateView(node(c.addr), c.hvClientCount),
 		app:    newGossip(c.gossipMaxHeat),
 		conn:   map[string]*conn{},
 		in:     make(chan *message, c.hvInboxBuffer),
@@ -214,7 +214,7 @@ func (c *client) sendNeighbor(m *h.NeighborRequest) (*h.NeighborRefuse, error) {
 		return nil, nil
 	}
 
-	return h.SendNeighborRefuse(c.hv.Self, &h.Node{Addr: r.From}), nil
+	return h.SendNeighborRefuse(c.hv.Self, node(r.From)), nil
 }
 
 func (c *client) outbox(ms ...h.Message) {
