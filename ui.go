@@ -156,6 +156,8 @@ func (c *client) handleGossip(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		w.WriteHeader(405)
 	}
+	c.gossipStart()
+	w.WriteHeader(201)
 }
 
 func runUIServer(addr string, c *client, stats *stats) {
