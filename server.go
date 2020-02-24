@@ -16,13 +16,9 @@ func newServer(c *client) *server {
 	return &server{c: c}
 }
 
-func (s *server) Gossip(ctx context.Context, req *proto.GossipRequest) (*proto.GossipResponse, error) {
-	hot := s.c.app.gossipRecv(req.Payload, req.Hops)
-	// if hot {
-	// 	log.Printf("info gossip recv: %d\n", req.Payload)
-	// }
-
-	return &proto.GossipResponse{Hot: hot}, nil
+func (s *server) Gossip(ctx context.Context, req *proto.GossipRequest) (*proto.GossipEmpty, error) {
+	s.c.gossipRecv(req)
+	return &proto.GossipEmpty{}, nil
 }
 
 func (s *server) View(ctx context.Context, req *proto.StatEmpty) (*proto.ViewResponse, error) {
@@ -30,7 +26,7 @@ func (s *server) View(ctx context.Context, req *proto.StatEmpty) (*proto.ViewRes
 		From:    s.c.hv.Self.Addr,
 		Active:  sliceNodeAddr(s.c.hv.Active.Nodes),
 		Passive: sliceNodeAddr(s.c.hv.Passive.Nodes),
-		App:     s.c.app.Value,
+		App:     s.c.app.Payload,
 		Hops:    s.c.app.Hops,
 		Waste:   s.c.app.Waste,
 	}, nil

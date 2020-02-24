@@ -4,76 +4,64 @@ import (
 	"context"
 	"time"
 
-	h "github.com/hashicorp/hyparview"
 	"github.com/hashicorp/hyparview-example/proto"
 )
 
 type gossip struct {
-	MaxHeat int   // config value
-	Value   int32 // final value we got
-	Hot     int   // gossip hotness
+	Payload int32 // final value we got
 	Hops    int32 // number of hops the current value took to get here
 	Seen    int   // if app == appSeen, we got every message
 	Waste   int32 // count of app messages that didn't change the value
 }
 
 func newGossip(maxHeat int) *gossip {
-	return &gossip{
-		MaxHeat: maxHeat,
-	}
+	return &gossip{}
 }
 
-func (c *client) gossipGo(peer *h.Node) {
+func (c *client) gossipStart() {
+	c.app.Payload = c.app.Payload + 1
+	c.app.Hops = 0
+	c.gossipForward(&proto.GossipRequest{
+		Payload: c.app.Payload,
+		Hops:    1,
+		From:    c.hv.Active.RandNode().Addr,
+	})
 }
 
-func (c *client) gossipSend(payload int) {
-	for c.app.Hot > 0 {
-		if h.Rint(c.app.MaxHeat) > c.app.Hot {
+func (c *client) gossipForward(m *proto.GossipRequest) {
+	from := node(m.From)
+	for _, peer := range c.hv.Active.Shuffled() {
+		if peer.Equal(from) {
 			continue
 		}
 
-		peer := c.getPeer()
-		if peer == nil {
-			continue
-		}
-
-		hot, err := c.gossipSendSync(peer)
+		cn, err := c.dial(peer)
 		if err != nil {
+			// failActive is async
 			c.failActive(peer)
+			continue
 		}
+		grpc := cn.g
 
-		if !hot {
-			c.app.Hot -= 1
-		}
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		_, err = grpc.Gossip(ctx, m)
 	}
 }
 
-func (c *client) gossipSendSync(peer *h.Node) (bool, error) {
-	cn, err := c.dial(peer)
-	if err != nil {
-		return false, err
-	}
-	grpc := cn.g
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	req := &proto.GossipRequest{Payload: c.app.Value, Hops: c.app.Hops}
-	r, err := grpc.Gossip(ctx, req)
-	return r.GetHot(), err
-}
-
-func (app *gossip) gossipRecv(payload, hops int32) bool {
-	if app.Value >= payload {
+func (c *client) gossipRecv(m *proto.GossipRequest) {
+	if c.app.Payload >= m.Payload {
 		// Lifetime total count
-		app.Waste += 1
-		return false
+		c.app.Waste += 1
+		return
 	}
-	app.Value = payload
-	app.Hops = hops + 1
-	app.Hot = app.MaxHeat
+	c.app.Payload = m.Payload
+	m.Hops += 1
+	c.app.Hops = m.Hops
 
 	// Lifetime total count
-	app.Seen += 1
-	return true
+	c.app.Seen += 1
+
+	c.gossipForward(m)
 }

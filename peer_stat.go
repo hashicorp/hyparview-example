@@ -42,7 +42,7 @@ func (c *client) wireStat() *wireStat {
 		Active:  [ACTIVE_SIZE]byte{},
 		Passive: [PASSIVE_SIZE]byte{},
 		From:    [ADDR_SIZE]byte{},
-		App:     c.app.Value,
+		App:     c.app.Payload,
 		Hops:    c.app.Hops,
 		Waste:   c.app.Waste,
 	}
