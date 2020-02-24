@@ -3,7 +3,7 @@ package main
 import h "github.com/hashicorp/hyparview"
 
 func node(addr string) *h.Node {
-	return &h.Node{Addr: addr}
+	return &h.Node{ID: addr, Addr: addr}
 }
 
 func sliceNodeAddr(ns []*h.Node) []string {
