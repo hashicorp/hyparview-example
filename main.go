@@ -67,6 +67,7 @@ func main() {
 		go runStatServer(stat, stats, c)
 		go runUIServer(http, c, stats)
 	} else {
+		// After we join!
 		go runStatClient(c, stat)
 	}
 
