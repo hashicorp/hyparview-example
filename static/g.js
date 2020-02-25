@@ -25,6 +25,9 @@ const Graph = ForceGraph()(elem)
       .enablePointerInteraction(false)
       .graphData(initData);
 
+// Graph.d3Force('center');
+// Graph.d3Force('link');
+
 setInterval(refresh, 3000);
 
 function refresh() {
@@ -50,9 +53,8 @@ function mergeData(data, resp) {
     var nodes = data.nodes.map(n => {
         if (! resp.nodes[n.id]) return null; // missing
         node_ids[n.id] = true;               // mark the id
-        // if (! nodeEq(n, resp.nodes[n.id])) return resp.nodes[n.id];
-        n.app = resp.nodes[n.id].app % 8;
-        return n; // keep old obj
+        if (nodeEq(n, resp.nodes[n.id])) return n; // keep old obj
+        return resp.nodes[n.id];
     })
         .filter(n => { return n; });
 
