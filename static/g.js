@@ -21,7 +21,7 @@ const Graph = ForceGraph()(elem)
       .d3VelocityDecay(0.08)
       .cooldownTime(60000)
       .linkColor(() => 'rgba(0,0,0,0.05)')
-      .zoom(0.7)
+      .zoom(0.05)
       .enablePointerInteraction(false)
       .graphData(initData);
 
