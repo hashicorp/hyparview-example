@@ -9,6 +9,11 @@ two="ec2-user@`head -2 $hosts|tail -1|cut -f1`"
 three="ec2-user@`head -3 $hosts|tail -1|cut -f1`"
 four="ec2-user@`head -4 $hosts|tail -1|cut -f1`"
 five="ec2-user@`head -5 $hosts|tail -1|cut -f1`"
+# six="ec2-user@`head -6 $hosts|tail -1|cut -f1`"
+# seven="ec2-user@`head -7 $hosts|tail -1|cut -f1`"
+# eight="ec2-user@`head -8 $hosts|tail -1|cut -f1`"
+# nine="ec2-user@`head -9 $hosts|tail -1|cut -f1`"
+# ten="ec2-user@`head -10 $hosts|tail -1|cut -f1`"
 
 function demomux () {
     tmux new-session \
@@ -23,6 +28,12 @@ function demomux () {
 	 send-keys "echo Toggle synchronize-panes with C-b C-y" \; \
 	 set-window-option synchronize-panes
 }
+
+	 # split-window "ssh $six" \; \
+	 # split-window "ssh $seven" \; \
+	 # split-window "ssh $eight" \; \
+	 # split-window "ssh $nine" \; \
+	 # split-window "ssh $ten" \; \
 
 function curlstats () {
     curl "$@" "http://$bootstrap:8080/stats"
