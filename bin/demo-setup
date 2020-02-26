@@ -27,7 +27,7 @@ LO=0
 HI=700
 
 cat terraform/hosts | while read PUBLIC LISTEN; do
-    bin/provision "ec2-user@$PUBLIC" &
+    bin/provision "ec2-user@$PUBLIC"
     LO=$(($HI + 1))
     HI=$(($HI + $PER))
     HTTP_UI=""
