@@ -24,8 +24,6 @@ func newStats() *stats {
 func runStatServer(addr string, stats *stats, c *client) {
 	log.Printf("debug: starting stat server %s", addr)
 
-	c.stats = stats
-
 	parsers := c.config.statParseFanOut
 	inbox := make(chan []byte, parsers*c.config.statParseBuffer)
 	update := make(chan *peerStat, c.config.statUpdateBuffer)
@@ -48,15 +46,6 @@ func runStatServer(addr string, stats *stats, c *client) {
 			p := <-update
 			stats.lock.Lock()
 			stats.safe[p.From] = p
-
-			ago := time.Duration(c.config.statMillis * 2)
-			dead := time.Now().Sub(ago * time.Millisecond)
-			for k, v := range stats.safe {
-				if dead.Before(time.Unix(v.Time, 0)) {
-					delete(stats.safe, k)
-				}
-			}
-
 			stats.lock.Unlock()
 		}
 	}()
