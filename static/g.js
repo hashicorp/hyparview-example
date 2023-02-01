@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 document.body.addEventListener("keydown", ev => {
     if (ev.key != "g") return true;
     var xhr = new XMLHttpRequest();
