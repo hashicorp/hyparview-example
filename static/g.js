@@ -1,3 +1,7 @@
+/**
+ * Copyright IBM Corp. 2019, 2026
+ */
+
 document.body.addEventListener("keydown", ev => {
     if (ev.key != "g") return true;
     var xhr = new XMLHttpRequest();

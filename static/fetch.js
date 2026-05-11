@@ -1,3 +1,7 @@
+/**
+ * Copyright IBM Corp. 2019, 2026
+ */
+
 var fetch = (function () {
     function randInt(n, m) {
         return Math.floor(Math.random() * (m - n + 1)) + n;

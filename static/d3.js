@@ -1,3 +1,7 @@
+/**
+ * Copyright IBM Corp. 2019, 2026
+ */
+
 (function (d3, fetch) {
     // ==================================================
     // https://medium.com/ninjaconcept/interactive-dynamic-force-directed-graphs-with-d3-da720c6d7811

@@ -1,3 +1,5 @@
+# Copyright IBM Corp. 2019, 2026
+
 provider "aws" {
   profile    = "default"
   region     = "us-east-1"
